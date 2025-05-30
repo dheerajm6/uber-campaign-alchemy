@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -145,7 +144,8 @@ const CampaignBuilder: React.FC<CampaignBuilderProps> = ({ apiKey }) => {
       case 3:
         return campaign.campaignType;
       case 4:
-        return campaign.generatedMessage;
+        // Step 4 is for message generation, so we just need the basic campaign setup
+        return campaign.channel && campaign.userType && campaign.campaignType;
       default:
         return true;
     }
