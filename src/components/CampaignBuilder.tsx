@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -56,45 +57,90 @@ const CampaignBuilder: React.FC<CampaignBuilderProps> = ({ apiKey }) => {
     { value: 'behavioral', label: 'Behavioral Nudges', description: 'Drive specific actions' },
   ];
 
+  // Map UI selections to API replacement variables
+  const mapCampaignToReplacements = () => {
+    const channelMap: { [key: string]: string } = {
+      'push': 'Push Notification',
+      'sms': 'SMS',
+      'email': 'Email',
+      'whatsapp': 'WhatsApp'
+    };
+
+    const userTypeMap: { [key: string]: string } = {
+      'riders': 'Riders',
+      'drivers': 'Driver Partners'
+    };
+
+    const campaignGoalMap: { [key: string]: string } = {
+      'reengagement': 'Re-engage inactive users',
+      'promotions': 'Promote special offers and discounts',
+      'loyalty': 'Reward loyal customers',
+      'behavioral': 'Drive specific user behaviors'
+    };
+
+    const engagementToBehaviorMap: { [key: string]: string } = {
+      'high': 'Highly engaged users who frequently use the app',
+      'medium': 'Moderately engaged users with regular usage',
+      'low': 'Low engagement users who rarely use the app',
+      'inactive': 'Inactive users who haven\'t used the app recently'
+    };
+
+    const activityToPatternMap: { [key: string]: string } = {
+      '7days': 'Active in the last 7 days',
+      '30days': 'Active in the last 30 days',
+      '90days': 'Active in the last 90 days',
+      'never': 'Never been active'
+    };
+
+    return {
+      channel_type: channelMap[campaign.channel] || campaign.channel,
+      user_type: userTypeMap[campaign.userType] || campaign.userType,
+      campaign_goal: campaignGoalMap[campaign.campaignType] || campaign.campaignType,
+      user_behavior: engagementToBehaviorMap[campaign.filters.engagement] || 'General users',
+      desired_outcome: 'Increase user engagement and drive action',
+      brand_tone: 'Professional, friendly, and trustworthy - consistent with Uber\'s brand voice',
+      location: campaign.filters.location || 'All locations',
+      behavior_pattern: activityToPatternMap[campaign.filters.activity] || 'General activity pattern',
+      tone_style: 'Concise, engaging, and action-oriented',
+      language: 'English',
+      number_of_variants: '1'
+    };
+  };
+
   const generateMessage = async () => {
     setCampaign(prev => ({ ...prev, isGenerating: true }));
     
     try {
-      const prompt = `Generate a ${campaign.channel} message for ${campaign.userType} for a ${campaign.campaignType} campaign. 
-      Target audience: ${campaign.filters.engagement || 'general'} engagement level.
-      Keep it concise, engaging, and aligned with Uber's brand voice. 
-      ${campaign.channel === 'sms' ? 'Keep under 160 characters.' : ''}
-      ${campaign.channel === 'push' ? 'Keep under 50 characters for title and 100 for body.' : ''}`;
+      console.log('Generating message with API key:', apiKey ? 'API key provided' : 'No API key');
+      
+      const replacements = mapCampaignToReplacements();
+      console.log('Replacement variables:', replacements);
 
-      const response = await fetch('https://api.perplexity.ai/chat/completions', {
+      const response = await fetch('https://api.hyperleap.ai/prompt-runs/run', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
+          'x-hl-api-key': apiKey,
         },
         body: JSON.stringify({
-          model: 'llama-3.1-sonar-small-128k-online',
-          messages: [
-            {
-              role: 'system',
-              content: 'You are a marketing copywriter for Uber. Write compelling, concise marketing messages that drive action. Be direct, friendly, and use Uber\'s brand voice.'
-            },
-            {
-              role: 'user',
-              content: prompt
-            }
-          ],
-          temperature: 0.7,
-          max_tokens: 200,
+          promptId: '9ab5aa1f-b408-4881-9355-d82bf23c52dd',
+          promptVersionId: '7c3a9c75-150e-4d92-99de-af31ff065bb9',
+          replacements: replacements
         }),
       });
 
+      console.log('API Response status:', response.status);
+      
       if (!response.ok) {
-        throw new Error('Failed to generate message');
+        const errorText = await response.text();
+        console.error('API Error:', errorText);
+        throw new Error(`API request failed: ${response.status} - ${errorText}`);
       }
 
       const data = await response.json();
-      const generatedMessage = data.choices[0]?.message?.content || 'Failed to generate message';
+      console.log('API Response data:', data);
+      
+      const generatedMessage = data.output || data.result || data.message || 'Failed to generate message';
       
       setCampaign(prev => ({ 
         ...prev, 
@@ -112,7 +158,7 @@ const CampaignBuilder: React.FC<CampaignBuilderProps> = ({ apiKey }) => {
       setCampaign(prev => ({ ...prev, isGenerating: false }));
       toast({
         title: "Generation Failed",
-        description: "Failed to generate message. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to generate message. Please check your API key and try again.",
         variant: "destructive",
       });
     }
