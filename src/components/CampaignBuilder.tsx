@@ -1,17 +1,18 @@
 
 import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Progress } from "@/components/ui/progress";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { MessageSquare, Users, Target, Sparkles, Send, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Campaign } from "@/types/campaign";
+import { channels, userTypes, campaignTypes } from "@/utils/campaignData";
+import { mapCampaignToReplacements } from "@/utils/apiMapping";
+import ChannelAudienceStep from "@/components/campaign/ChannelAudienceStep";
+import CampaignTypeStep from "@/components/campaign/CampaignTypeStep";
+import TargetingStep from "@/components/campaign/TargetingStep";
+import MessageGenerationStep from "@/components/campaign/MessageGenerationStep";
+import CampaignSummary from "@/components/campaign/CampaignSummary";
 
 interface CampaignBuilderProps {
   apiKey: string;
@@ -20,7 +21,7 @@ interface CampaignBuilderProps {
 const CampaignBuilder: React.FC<CampaignBuilderProps> = ({ apiKey }) => {
   const { toast } = useToast();
   const [step, setStep] = useState(1);
-  const [campaign, setCampaign] = useState({
+  const [campaign, setCampaign] = useState<Campaign>({
     channel: '',
     userType: '',
     campaignType: '',
@@ -38,82 +39,13 @@ const CampaignBuilder: React.FC<CampaignBuilderProps> = ({ apiKey }) => {
     isGenerating: false,
   });
 
-  const channels = [
-    { value: 'push', label: 'Push Notification', description: 'In-app notifications' },
-    { value: 'sms', label: 'SMS', description: 'Text messages' },
-    { value: 'email', label: 'Email', description: 'Email campaigns' },
-    { value: 'whatsapp', label: 'WhatsApp', description: 'WhatsApp Business' },
-  ];
-
-  const userTypes = [
-    { value: 'riders', label: 'Riders', description: 'App users who request rides' },
-    { value: 'drivers', label: 'Driver Partners', description: 'Driver-partners on the platform' },
-  ];
-
-  const campaignTypes = [
-    { value: 'reengagement', label: 'Re-engagement', description: 'Win back inactive users' },
-    { value: 'promotions', label: 'Promotions', description: 'Special offers and discounts' },
-    { value: 'loyalty', label: 'Loyalty', description: 'Reward frequent users' },
-    { value: 'behavioral', label: 'Behavioral Nudges', description: 'Drive specific actions' },
-  ];
-
-  // Map UI selections to API replacement variables
-  const mapCampaignToReplacements = () => {
-    const channelMap: { [key: string]: string } = {
-      'push': 'Push Notification',
-      'sms': 'SMS',
-      'email': 'Email',
-      'whatsapp': 'WhatsApp'
-    };
-
-    const userTypeMap: { [key: string]: string } = {
-      'riders': 'Riders',
-      'drivers': 'Driver Partners'
-    };
-
-    const campaignGoalMap: { [key: string]: string } = {
-      'reengagement': 'Re-engage inactive users',
-      'promotions': 'Promote special offers and discounts',
-      'loyalty': 'Reward loyal customers',
-      'behavioral': 'Drive specific user behaviors'
-    };
-
-    const engagementToBehaviorMap: { [key: string]: string } = {
-      'high': 'Highly engaged users who frequently use the app',
-      'medium': 'Moderately engaged users with regular usage',
-      'low': 'Low engagement users who rarely use the app',
-      'inactive': 'Inactive users who haven\'t used the app recently'
-    };
-
-    const activityToPatternMap: { [key: string]: string } = {
-      '7days': 'Active in the last 7 days',
-      '30days': 'Active in the last 30 days',
-      '90days': 'Active in the last 90 days',
-      'never': 'Never been active'
-    };
-
-    return {
-      channel_type: channelMap[campaign.channel] || campaign.channel,
-      user_type: userTypeMap[campaign.userType] || campaign.userType,
-      campaign_goal: campaignGoalMap[campaign.campaignType] || campaign.campaignType,
-      user_behavior: engagementToBehaviorMap[campaign.filters.engagement] || 'General users',
-      desired_outcome: 'Increase user engagement and drive action',
-      brand_tone: 'Professional, friendly, and trustworthy - consistent with Uber\'s brand voice',
-      location: campaign.filters.location || 'All locations',
-      behavior_pattern: activityToPatternMap[campaign.filters.activity] || 'General activity pattern',
-      tone_style: 'Concise, engaging, and action-oriented',
-      language: 'English',
-      number_of_variants: '1'
-    };
-  };
-
   const generateMessage = async () => {
     setCampaign(prev => ({ ...prev, isGenerating: true }));
     
     try {
       console.log('Generating message with API key:', apiKey ? 'API key provided' : 'No API key');
       
-      const replacements = mapCampaignToReplacements();
+      const replacements = mapCampaignToReplacements(campaign);
       console.log('Replacement variables:', replacements);
 
       const response = await fetch('https://api.hyperleap.ai/prompt-runs/run', {
@@ -190,10 +122,49 @@ const CampaignBuilder: React.FC<CampaignBuilderProps> = ({ apiKey }) => {
       case 3:
         return campaign.campaignType;
       case 4:
-        // Step 4 is for message generation, so we just need the basic campaign setup
         return campaign.channel && campaign.userType && campaign.campaignType;
       default:
         return true;
+    }
+  };
+
+  const renderStepContent = () => {
+    switch (step) {
+      case 1:
+        return (
+          <ChannelAudienceStep
+            campaign={campaign}
+            setCampaign={setCampaign}
+            channels={channels}
+            userTypes={userTypes}
+          />
+        );
+      case 2:
+        return (
+          <CampaignTypeStep
+            campaign={campaign}
+            setCampaign={setCampaign}
+            campaignTypes={campaignTypes}
+          />
+        );
+      case 3:
+        return (
+          <TargetingStep
+            campaign={campaign}
+            setCampaign={setCampaign}
+          />
+        );
+      case 4:
+        return (
+          <MessageGenerationStep
+            campaign={campaign}
+            setCampaign={setCampaign}
+            onGenerateMessage={generateMessage}
+            onLaunchCampaign={launchCampaign}
+          />
+        );
+      default:
+        return null;
     }
   };
 
@@ -222,338 +193,12 @@ const CampaignBuilder: React.FC<CampaignBuilderProps> = ({ apiKey }) => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
-          {step === 1 && (
-            <Card className="border-0 shadow-sm">
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <MessageSquare className="w-5 h-5" />
-                  <span>Channel & Audience</span>
-                </CardTitle>
-                <CardDescription>
-                  Choose your messaging channel and target audience
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-3">
-                  <Label className="text-sm font-medium">Messaging Channel</Label>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {channels.map((channel) => (
-                      <div
-                        key={channel.value}
-                        className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                          campaign.channel === channel.value
-                            ? 'border-black bg-gray-50'
-                            : 'border-gray-200 hover:border-gray-300'
-                        }`}
-                        onClick={() => setCampaign(prev => ({ ...prev, channel: channel.value }))}
-                      >
-                        <h4 className="font-semibold text-gray-900">{channel.label}</h4>
-                        <p className="text-sm text-gray-600">{channel.description}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div className="space-y-3">
-                  <Label className="text-sm font-medium">Target Audience</Label>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {userTypes.map((userType) => (
-                      <div
-                        key={userType.value}
-                        className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                          campaign.userType === userType.value
-                            ? 'border-black bg-gray-50'
-                            : 'border-gray-200 hover:border-gray-300'
-                        }`}
-                        onClick={() => setCampaign(prev => ({ ...prev, userType: userType.value }))}
-                      >
-                        <h4 className="font-semibold text-gray-900">{userType.label}</h4>
-                        <p className="text-sm text-gray-600">{userType.description}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {step === 2 && (
-            <Card className="border-0 shadow-sm">
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Target className="w-5 h-5" />
-                  <span>Campaign Type</span>
-                </CardTitle>
-                <CardDescription>
-                  Select the type of campaign you want to run
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {campaignTypes.map((type) => (
-                    <div
-                      key={type.value}
-                      className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                        campaign.campaignType === type.value
-                          ? 'border-black bg-gray-50'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                      onClick={() => setCampaign(prev => ({ ...prev, campaignType: type.value }))}
-                    >
-                      <h4 className="font-semibold text-gray-900">{type.label}</h4>
-                      <p className="text-sm text-gray-600">{type.description}</p>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {step === 3 && (
-            <Card className="border-0 shadow-sm">
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Users className="w-5 h-5" />
-                  <span>User Targeting & Filters</span>
-                </CardTitle>
-                <CardDescription>
-                  Refine your audience with specific filters
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label>Engagement Level</Label>
-                    <Select
-                      value={campaign.filters.engagement}
-                      onValueChange={(value) =>
-                        setCampaign(prev => ({
-                          ...prev,
-                          filters: { ...prev.filters, engagement: value }
-                        }))
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select level" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="high">High Engagement</SelectItem>
-                        <SelectItem value="medium">Medium Engagement</SelectItem>
-                        <SelectItem value="low">Low Engagement</SelectItem>
-                        <SelectItem value="inactive">Inactive Users</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Activity Period</Label>
-                    <Select
-                      value={campaign.filters.activity}
-                      onValueChange={(value) =>
-                        setCampaign(prev => ({
-                          ...prev,
-                          filters: { ...prev.filters, activity: value }
-                        }))
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select period" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="7days">Last 7 days</SelectItem>
-                        <SelectItem value="30days">Last 30 days</SelectItem>
-                        <SelectItem value="90days">Last 90 days</SelectItem>
-                        <SelectItem value="never">Never active</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Location</Label>
-                    <Select
-                      value={campaign.filters.location}
-                      onValueChange={(value) =>
-                        setCampaign(prev => ({
-                          ...prev,
-                          filters: { ...prev.filters, location: value }
-                        }))
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="All locations" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Locations</SelectItem>
-                        <SelectItem value="urban">Urban Areas</SelectItem>
-                        <SelectItem value="suburban">Suburban Areas</SelectItem>
-                        <SelectItem value="specific">Specific Cities</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div className="space-y-4">
-                  <Label className="text-sm font-medium">Additional Targeting Options</Label>
-                  <div className="space-y-3">
-                    {[
-                      { key: 'includeInactive', label: 'Include inactive users (90+ days)', description: 'Users who haven\'t opened the app recently' },
-                      { key: 'includeLowSpenders', label: 'Include low-value users', description: 'Users with minimal spending history' },
-                      { key: 'includeNewUsers', label: 'Include new users', description: 'Users who signed up in the last 30 days' },
-                    ].map((option) => (
-                      <div key={option.key} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div className="space-y-1">
-                          <p className="text-sm font-medium">{option.label}</p>
-                          <p className="text-xs text-gray-600">{option.description}</p>
-                        </div>
-                        <Switch
-                          checked={campaign.targeting[option.key as keyof typeof campaign.targeting]}
-                          onCheckedChange={(checked) =>
-                            setCampaign(prev => ({
-                              ...prev,
-                              targeting: { ...prev.targeting, [option.key]: checked }
-                            }))
-                          }
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {step === 4 && (
-            <Card className="border-0 shadow-sm">
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Sparkles className="w-5 h-5" />
-                  <span>AI Message Generation</span>
-                </CardTitle>
-                <CardDescription>
-                  Generate and customize your campaign message
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {!campaign.generatedMessage ? (
-                  <div className="text-center py-8">
-                    <Button
-                      onClick={generateMessage}
-                      disabled={campaign.isGenerating}
-                      className="bg-black hover:bg-gray-800 text-white px-8 py-3"
-                    >
-                      {campaign.isGenerating ? (
-                        <>
-                          <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                          Generating...
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles className="w-4 h-4 mr-2" />
-                          Generate AI Message
-                        </>
-                      )}
-                    </Button>
-                    <p className="text-sm text-gray-600 mt-2">
-                      AI will create a personalized message based on your campaign settings
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="p-4 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-                      <Label className="text-sm font-medium text-gray-700">Generated Message</Label>
-                      <Textarea
-                        value={campaign.generatedMessage}
-                        onChange={(e) =>
-                          setCampaign(prev => ({ ...prev, generatedMessage: e.target.value }))
-                        }
-                        className="mt-2 min-h-[100px] resize-none border-0 bg-white"
-                        placeholder="Your AI-generated message will appear here..."
-                      />
-                    </div>
-                    <div className="flex space-x-3">
-                      <Button
-                        variant="outline"
-                        onClick={generateMessage}
-                        disabled={campaign.isGenerating}
-                        className="flex-1"
-                      >
-                        <RefreshCw className="w-4 h-4 mr-2" />
-                        Regenerate
-                      </Button>
-                      <Button
-                        onClick={launchCampaign}
-                        className="flex-1 bg-black hover:bg-gray-800 text-white"
-                      >
-                        <Send className="w-4 h-4 mr-2" />
-                        Launch Campaign
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
+          {renderStepContent()}
         </div>
 
         {/* Sidebar - Campaign Summary */}
         <div className="space-y-6">
-          <Card className="border-0 shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-lg">Campaign Summary</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Channel:</span>
-                  <Badge variant={campaign.channel ? "default" : "outline"}>
-                    {campaign.channel || 'Not selected'}
-                  </Badge>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Audience:</span>
-                  <Badge variant={campaign.userType ? "default" : "outline"}>
-                    {campaign.userType || 'Not selected'}
-                  </Badge>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Type:</span>
-                  <Badge variant={campaign.campaignType ? "default" : "outline"}>
-                    {campaign.campaignType || 'Not selected'}
-                  </Badge>
-                </div>
-              </div>
-
-              {campaign.filters.engagement && (
-                <div className="pt-3 border-t">
-                  <p className="text-sm font-medium text-gray-700 mb-2">Filters:</p>
-                  <div className="space-y-1">
-                    {campaign.filters.engagement && (
-                      <p className="text-xs text-gray-600">• {campaign.filters.engagement} engagement</p>
-                    )}
-                    {campaign.filters.activity && (
-                      <p className="text-xs text-gray-600">• {campaign.filters.activity} activity</p>
-                    )}
-                    {campaign.filters.location && (
-                      <p className="text-xs text-gray-600">• {campaign.filters.location} location</p>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {step > 1 && (
-                <Alert>
-                  <AlertDescription className="text-xs">
-                    Estimated reach: <strong>12,500 users</strong><br />
-                    Expected CTR: <strong>3.2%</strong>
-                  </AlertDescription>
-                </Alert>
-              )}
-            </CardContent>
-          </Card>
+          <CampaignSummary campaign={campaign} step={step} />
         </div>
       </div>
 
