@@ -1,37 +1,35 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useAuth } from "@/hooks/useAuth";
+import LoginForm from "@/components/LoginForm";
+import AdminSettings from "@/components/AdminSettings";
 import CampaignBuilder from "@/components/CampaignBuilder";
 import Dashboard from "@/components/Dashboard";
 import UserTargeting from "@/components/UserTargeting";
-import { BarChart3, MessageSquare, Users, Settings } from "lucide-react";
+import { BarChart3, MessageSquare, Users, Settings, LogOut } from "lucide-react";
 
 const Index = () => {
+  const { user, logout, isAuthenticated } = useAuth();
   const [apiKey, setApiKey] = useState<string>("");
-  const [isApiKeySet, setIsApiKeySet] = useState<boolean>(false);
-
-  const handleApiKeySubmit = () => {
-    if (apiKey.trim()) {
-      localStorage.setItem('hyperleap_api_key', apiKey);
-      setIsApiKeySet(true);
-    }
-  };
 
   // Check if API key exists on component mount
-  React.useEffect(() => {
+  useEffect(() => {
     const savedApiKey = localStorage.getItem('hyperleap_api_key');
     if (savedApiKey) {
       setApiKey(savedApiKey);
-      setIsApiKeySet(true);
     }
   }, []);
 
-  if (!isApiKeySet) {
+  if (!isAuthenticated) {
+    return <LoginForm />;
+  }
+
+  // For regular users, check if API key is available
+  if (user?.role === 'user' && !apiKey) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
         <Card className="w-full max-w-md">
@@ -44,26 +42,16 @@ const Index = () => {
           <CardContent className="space-y-4">
             <Alert>
               <AlertDescription>
-                Please enter your Hyperleap API key to enable AI message generation.
+                The administrator needs to configure the Hyperleap API key before you can use the campaign features.
               </AlertDescription>
             </Alert>
-            <div className="space-y-2">
-              <Label htmlFor="apiKey">Hyperleap API Key</Label>
-              <Input
-                id="apiKey"
-                type="password"
-                placeholder="Enter your API key..."
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleApiKeySubmit()}
-              />
-            </div>
             <Button 
-              onClick={handleApiKeySubmit} 
-              className="w-full bg-black hover:bg-gray-800 text-white"
-              disabled={!apiKey.trim()}
+              onClick={logout}
+              variant="outline"
+              className="w-full"
             >
-              Continue
+              <LogOut className="w-4 h-4 mr-2" />
+              Logout
             </Button>
           </CardContent>
         </Card>
@@ -82,20 +70,18 @@ const Index = () => {
             </div>
             <div>
               <h1 className="text-xl font-bold text-gray-900">Campaign Console</h1>
-              <p className="text-sm text-gray-600">AI-powered marketing campaigns</p>
+              <p className="text-sm text-gray-600">
+                Welcome, {user?.username} ({user?.role})
+              </p>
             </div>
           </div>
           <Button 
             variant="outline" 
             size="sm"
-            onClick={() => {
-              localStorage.removeItem('hyperleap_api_key');
-              setIsApiKeySet(false);
-              setApiKey('');
-            }}
+            onClick={logout}
           >
-            <Settings className="w-4 h-4 mr-2" />
-            Settings
+            <LogOut className="w-4 h-4 mr-2" />
+            Logout
           </Button>
         </div>
       </header>
@@ -103,7 +89,7 @@ const Index = () => {
       {/* Main Content */}
       <main className="container mx-auto px-6 py-8">
         <Tabs defaultValue="dashboard" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:grid-cols-4">
+          <TabsList className={`grid w-full ${user?.role === 'admin' ? 'grid-cols-5' : 'grid-cols-4'} lg:w-auto`}>
             <TabsTrigger value="dashboard" className="flex items-center space-x-2">
               <BarChart3 className="w-4 h-4" />
               <span>Dashboard</span>
@@ -120,6 +106,12 @@ const Index = () => {
               <BarChart3 className="w-4 h-4" />
               <span>Analytics</span>
             </TabsTrigger>
+            {user?.role === 'admin' && (
+              <TabsTrigger value="admin" className="flex items-center space-x-2">
+                <Settings className="w-4 h-4" />
+                <span>Admin</span>
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="dashboard">
@@ -137,6 +129,12 @@ const Index = () => {
           <TabsContent value="analytics">
             <Dashboard />
           </TabsContent>
+
+          {user?.role === 'admin' && (
+            <TabsContent value="admin">
+              <AdminSettings />
+            </TabsContent>
+          )}
         </Tabs>
       </main>
     </div>

@@ -40,6 +40,15 @@ const CampaignBuilder: React.FC<CampaignBuilderProps> = ({ apiKey }) => {
   });
 
   const generateMessage = async () => {
+    if (!apiKey) {
+      toast({
+        title: "API Key Missing",
+        description: "Please contact the administrator to configure the Hyperleap API key.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setCampaign(prev => ({ ...prev, isGenerating: true }));
     
     try {
@@ -48,20 +57,25 @@ const CampaignBuilder: React.FC<CampaignBuilderProps> = ({ apiKey }) => {
       const replacements = mapCampaignToReplacements(campaign);
       console.log('Replacement variables:', replacements);
 
+      const requestBody = {
+        promptId: '9ab5aa1f-b408-4881-9355-d82bf23c52dd',
+        promptVersionId: '7c3a9c75-150e-4d92-99de-af31ff065bb9',
+        replacements: replacements
+      };
+
+      console.log('Request body:', requestBody);
+
       const response = await fetch('https://api.hyperleap.ai/prompt-runs/run', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'x-hl-api-key': apiKey,
         },
-        body: JSON.stringify({
-          promptId: '9ab5aa1f-b408-4881-9355-d82bf23c52dd',
-          promptVersionId: '7c3a9c75-150e-4d92-99de-af31ff065bb9',
-          replacements: replacements
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       console.log('API Response status:', response.status);
+      console.log('API Response headers:', Object.fromEntries(response.headers.entries()));
       
       if (!response.ok) {
         const errorText = await response.text();
@@ -72,7 +86,7 @@ const CampaignBuilder: React.FC<CampaignBuilderProps> = ({ apiKey }) => {
       const data = await response.json();
       console.log('API Response data:', data);
       
-      const generatedMessage = data.output || data.result || data.message || 'Failed to generate message';
+      const generatedMessage = data.output || data.result || data.message || data.text || 'Failed to generate message';
       
       setCampaign(prev => ({ 
         ...prev, 
