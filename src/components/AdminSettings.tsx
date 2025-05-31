@@ -25,6 +25,15 @@ const AdminSettings = () => {
       localStorage.setItem('hyperleap_api_key', apiKey.trim());
       setCurrentApiKey(apiKey.trim());
       setApiKey('');
+      
+      // Dispatch custom event to notify other components
+      window.dispatchEvent(new CustomEvent('apiKeyChanged'));
+      
+      console.log('=== API KEY SAVED ===');
+      console.log('New API key saved:', apiKey.trim().substring(0, 10) + '...');
+      console.log('Custom event dispatched');
+      console.log('====================');
+      
       toast({
         title: "API Key Saved",
         description: "Hyperleap API key has been saved for all users.",
@@ -35,6 +44,15 @@ const AdminSettings = () => {
   const handleRemoveApiKey = () => {
     localStorage.removeItem('hyperleap_api_key');
     setCurrentApiKey('');
+    
+    // Dispatch custom event to notify other components
+    window.dispatchEvent(new CustomEvent('apiKeyChanged'));
+    
+    console.log('=== API KEY REMOVED ===');
+    console.log('API key removed from localStorage');
+    console.log('Custom event dispatched');
+    console.log('======================');
+    
     toast({
       title: "API Key Removed",
       description: "Hyperleap API key has been removed.",

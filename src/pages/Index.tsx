@@ -16,12 +16,48 @@ const Index = () => {
   const { user, logout, isAuthenticated } = useAuth();
   const [apiKey, setApiKey] = useState<string>("");
 
-  // Check if API key exists on component mount
+  // Check if API key exists on component mount and create a listener for changes
   useEffect(() => {
-    const savedApiKey = localStorage.getItem('hyperleap_api_key');
-    if (savedApiKey) {
-      setApiKey(savedApiKey);
-    }
+    const checkApiKey = () => {
+      const savedApiKey = localStorage.getItem('hyperleap_api_key');
+      console.log('=== API KEY CHECK ===');
+      console.log('Saved API key exists:', !!savedApiKey);
+      console.log('Current apiKey state:', apiKey);
+      console.log('===================');
+      
+      if (savedApiKey) {
+        setApiKey(savedApiKey);
+      } else {
+        setApiKey("");
+      }
+    };
+
+    // Initial check
+    checkApiKey();
+
+    // Listen for storage changes (when API key is saved/removed)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'hyperleap_api_key') {
+        console.log('=== STORAGE CHANGE DETECTED ===');
+        console.log('New value:', e.newValue);
+        console.log('==============================');
+        checkApiKey();
+      }
+    };
+
+    // Listen for custom events (for same-tab updates)
+    const handleApiKeyChange = () => {
+      console.log('=== CUSTOM API KEY EVENT ===');
+      checkApiKey();
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('apiKeyChanged', handleApiKeyChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('apiKeyChanged', handleApiKeyChange);
+    };
   }, []);
 
   if (!isAuthenticated) {
