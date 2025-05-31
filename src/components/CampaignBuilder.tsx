@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -52,10 +51,12 @@ const CampaignBuilder: React.FC<CampaignBuilderProps> = ({ apiKey }) => {
     setCampaign(prev => ({ ...prev, isGenerating: true }));
     
     try {
-      console.log('Generating message with API key:', apiKey ? 'API key provided' : 'No API key');
+      console.log('=== HYPERLEAP API CALL DEBUG ===');
+      console.log('API Key available:', !!apiKey);
+      console.log('API Key length:', apiKey.length);
+      console.log('API Key prefix:', apiKey.substring(0, 10) + '...');
       
       const replacements = mapCampaignToReplacements(campaign);
-      console.log('Replacement variables:', replacements);
 
       const requestBody = {
         promptId: '9ab5aa1f-b408-4881-9355-d82bf23c52dd',
@@ -63,7 +64,7 @@ const CampaignBuilder: React.FC<CampaignBuilderProps> = ({ apiKey }) => {
         replacements: replacements
       };
 
-      console.log('Request body:', requestBody);
+      console.log('Full request body:', JSON.stringify(requestBody, null, 2));
 
       const response = await fetch('https://api.hyperleap.ai/prompt-runs/run', {
         method: 'POST',
@@ -74,23 +75,37 @@ const CampaignBuilder: React.FC<CampaignBuilderProps> = ({ apiKey }) => {
         body: JSON.stringify(requestBody),
       });
 
-      console.log('API Response status:', response.status);
-      console.log('API Response headers:', Object.fromEntries(response.headers.entries()));
+      console.log('Response status:', response.status);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+      
+      const responseText = await response.text();
+      console.log('Raw response:', responseText);
       
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('API Error:', errorText);
-        throw new Error(`API request failed: ${response.status} - ${errorText}`);
+        console.error('API Error Response:', responseText);
+        throw new Error(`API request failed: ${response.status} - ${responseText}`);
       }
 
-      const data = await response.json();
-      console.log('API Response data:', data);
+      let data;
+      try {
+        data = JSON.parse(responseText);
+        console.log('Parsed response data:', data);
+      } catch (parseError) {
+        console.error('Failed to parse response as JSON:', parseError);
+        throw new Error('Invalid JSON response from API');
+      }
       
-      const generatedMessage = data.output || data.result || data.message || data.text || 'Failed to generate message';
+      // Try multiple possible response fields
+      const generatedMessage = data.output || data.result || data.message || data.text || data.content || data.response;
+      
+      if (!generatedMessage) {
+        console.error('No message found in response. Full response:', data);
+        throw new Error('No generated message found in API response');
+      }
       
       setCampaign(prev => ({ 
         ...prev, 
-        generatedMessage: generatedMessage.trim(),
+        generatedMessage: String(generatedMessage).trim(),
         isGenerating: false 
       }));
 
@@ -99,8 +114,17 @@ const CampaignBuilder: React.FC<CampaignBuilderProps> = ({ apiKey }) => {
         description: "Your AI-powered campaign message is ready!",
       });
 
+      console.log('=== SUCCESS ===');
+      console.log('Generated message:', generatedMessage);
+      console.log('===============');
+
     } catch (error) {
-      console.error('Error generating message:', error);
+      console.error('=== ERROR GENERATING MESSAGE ===');
+      console.error('Error details:', error);
+      console.error('Error type:', typeof error);
+      console.error('Error message:', error instanceof Error ? error.message : String(error));
+      console.error('================================');
+      
       setCampaign(prev => ({ ...prev, isGenerating: false }));
       toast({
         title: "Generation Failed",

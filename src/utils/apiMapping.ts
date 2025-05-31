@@ -35,7 +35,7 @@ export const mapCampaignToReplacements = (campaign: Campaign) => {
     'never': 'Never been active'
   };
 
-  return {
+  const replacements = {
     channel_type: channelMap[campaign.channel] || campaign.channel,
     user_type: userTypeMap[campaign.userType] || campaign.userType,
     campaign_goal: campaignGoalMap[campaign.campaignType] || campaign.campaignType,
@@ -48,4 +48,11 @@ export const mapCampaignToReplacements = (campaign: Campaign) => {
     language: 'English',
     number_of_variants: '1'
   };
+
+  console.log('=== API MAPPING DEBUG ===');
+  console.log('Campaign data:', campaign);
+  console.log('Generated replacements:', replacements);
+  console.log('========================');
+
+  return replacements;
 };

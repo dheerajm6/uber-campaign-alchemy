@@ -36,14 +36,6 @@ const LoginForm = () => {
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
-          
-          <Alert>
-            <AlertDescription>
-              <strong>Demo Credentials:</strong><br/>
-              Admin: admin / admin123<br/>
-              User: user / user123
-            </AlertDescription>
-          </Alert>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
