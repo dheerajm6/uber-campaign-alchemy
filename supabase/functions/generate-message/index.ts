@@ -41,17 +41,57 @@ serve(async (req) => {
       replacements: replacements
     }
 
+    console.log('Request body:', JSON.stringify(requestBody, null, 2))
     console.log('Making request to Hyperleap API...')
     
-    const response = await fetch('https://api.hyperleap.ai/prompt-runs/run', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-hl-api-key': hyperleapApiKey,
-      },
-      body: JSON.stringify(requestBody),
-    })
+    // Add timeout and better error handling
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
+    let response;
+    try {
+      response = await fetch('https://api.hyperleap.ai/prompt-runs/run', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-hl-api-key': hyperleapApiKey,
+          'User-Agent': 'Supabase-Edge-Function/1.0',
+        },
+        body: JSON.stringify(requestBody),
+        signal: controller.signal,
+      })
+    } catch (fetchError) {
+      clearTimeout(timeoutId);
+      console.error('Fetch error:', fetchError);
+      console.error('Error name:', fetchError.name);
+      console.error('Error message:', fetchError.message);
+      
+      // Check if it's a timeout
+      if (fetchError.name === 'AbortError') {
+        return new Response(
+          JSON.stringify({ error: 'Request timeout - Hyperleap API did not respond within 30 seconds' }),
+          { 
+            status: 408,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        )
+      }
+      
+      // Check if it's a network error
+      if (fetchError.message.includes('network')) {
+        return new Response(
+          JSON.stringify({ error: 'Network error - Unable to reach Hyperleap API' }),
+          { 
+            status: 503,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        )
+      }
+      
+      throw fetchError; // Re-throw if it's a different error
+    }
+    
+    clearTimeout(timeoutId);
     console.log('Response status:', response.status)
     console.log('Response headers:', Object.fromEntries(response.headers.entries()))
 
@@ -61,7 +101,11 @@ serve(async (req) => {
     if (!response.ok) {
       console.error('API Error Response:', responseText)
       return new Response(
-        JSON.stringify({ error: `API request failed: ${response.status} - ${responseText}` }),
+        JSON.stringify({ 
+          error: `Hyperleap API Error: ${response.status} - ${responseText}`,
+          status: response.status,
+          details: responseText
+        }),
         { 
           status: response.status,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -76,7 +120,7 @@ serve(async (req) => {
     } catch (parseError) {
       console.error('Failed to parse response as JSON:', parseError)
       return new Response(
-        JSON.stringify({ error: 'Invalid JSON response from API' }),
+        JSON.stringify({ error: 'Invalid JSON response from Hyperleap API' }),
         { 
           status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -113,6 +157,7 @@ serve(async (req) => {
     console.error('=== EDGE FUNCTION ERROR ===')
     console.error('Error details:', error)
     console.error('Error message:', error instanceof Error ? error.message : String(error))
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace')
     console.error('===========================')
     
     return new Response(
