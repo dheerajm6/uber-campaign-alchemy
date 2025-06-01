@@ -35,23 +35,21 @@ serve(async (req) => {
     console.log('Replacements received:', replacements)
     console.log('=========================')
 
-    // Updated request format for Hyperleap API
+    // Correct request format based on Hyperleap API docs
     const requestBody = {
-      promptId: '9ab5aa1f-b408-4881-9355-d82bf23c52dd',
-      promptVersionId: '7c3a9c75-150e-4d92-99de-af31ff065bb9',
+      prompt_id: '9ab5aa1f-b408-4881-9355-d82bf23c52dd',
+      prompt_version_id: '7c3a9c75-150e-4d92-99de-af31ff065bb9',
       replacements: replacements
     }
 
     console.log('Request body:', JSON.stringify(requestBody, null, 2))
     console.log('Making request to Hyperleap API...')
     
-    const response = await fetch('https://api.hyperleap.ai/prompt-runs/run', {
+    const response = await fetch('https://api.hyperleap.ai/prompts/run', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${hyperleapApiKey}`,
-        'Accept': 'application/json',
-        'User-Agent': 'Supabase-Edge-Function',
       },
       body: JSON.stringify(requestBody),
     })
@@ -66,11 +64,10 @@ serve(async (req) => {
       console.error('Status:', response.status)
       console.error('StatusText:', response.statusText)
       console.error('Response body:', errorText)
-      console.error('Request URL:', 'https://api.hyperleap.ai/prompt-runs/run')
+      console.error('Request URL:', 'https://api.hyperleap.ai/prompts/run')
       console.error('Request headers:', {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${hyperleapApiKey?.substring(0, 10)}...`,
-        'Accept': 'application/json',
       })
       console.error('==========================')
       
@@ -91,11 +88,11 @@ serve(async (req) => {
     console.log('API Response structure:', Object.keys(data))
     console.log('Full API Response:', JSON.stringify(data, null, 2))
 
-    // Check for the generated message in the response - try different possible fields
-    const generatedMessage = data.output || data.result || data.message || data.text || data.content || data.response
+    // Based on the docs, the response should have an 'output' field
+    const generatedMessage = data.output
 
     if (!generatedMessage) {
-      console.error('No message found in response. Available fields:', Object.keys(data))
+      console.error('No output found in response. Available fields:', Object.keys(data))
       return new Response(
         JSON.stringify({ 
           error: 'No generated message found in API response',
