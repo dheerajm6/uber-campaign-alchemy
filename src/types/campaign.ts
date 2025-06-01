@@ -5,12 +5,6 @@ export interface CampaignFilters {
   location: string;
 }
 
-export interface CampaignTargeting {
-  includeInactive: boolean;
-  includeLowSpenders: boolean;
-  includeNewUsers: boolean;
-}
-
 export interface CampaignSettings {
   numberOfVariants: string;
   language: string;
@@ -23,7 +17,6 @@ export interface Campaign {
   userType: string;
   campaignType: string;
   filters: CampaignFilters;
-  targeting: CampaignTargeting;
   settings: CampaignSettings;
   generatedMessage: string;
   isGenerating: boolean;

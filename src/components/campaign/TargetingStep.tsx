@@ -3,7 +3,6 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Users, Settings } from "lucide-react";
 import { Campaign } from "@/types/campaign";
@@ -14,12 +13,6 @@ interface TargetingStepProps {
 }
 
 const TargetingStep: React.FC<TargetingStepProps> = ({ campaign, setCampaign }) => {
-  const targetingOptions = [
-    { key: 'includeInactive', label: 'Include inactive users (90+ days)', description: 'Users who haven\'t opened the app recently' },
-    { key: 'includeLowSpenders', label: 'Include low-value users', description: 'Users with minimal spending history' },
-    { key: 'includeNewUsers', label: 'Include new users', description: 'Users who signed up in the last 30 days' },
-  ];
-
   return (
     <div className="space-y-6">
       <Card className="border-0 shadow-sm">
@@ -101,31 +94,6 @@ const TargetingStep: React.FC<TargetingStepProps> = ({ campaign, setCampaign }) 
                   <SelectItem value="specific">Specific Cities</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-          </div>
-
-          <Separator />
-
-          <div className="space-y-4">
-            <Label className="text-sm font-medium">Additional Targeting Options</Label>
-            <div className="space-y-3">
-              {targetingOptions.map((option) => (
-                <div key={option.key} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium">{option.label}</p>
-                    <p className="text-xs text-gray-600">{option.description}</p>
-                  </div>
-                  <Switch
-                    checked={campaign.targeting[option.key as keyof typeof campaign.targeting] as boolean}
-                    onCheckedChange={(checked) =>
-                      setCampaign(prev => ({
-                        ...prev,
-                        targeting: { ...prev.targeting, [option.key]: checked }
-                      }))
-                    }
-                  />
-                </div>
-              ))}
             </div>
           </div>
         </CardContent>

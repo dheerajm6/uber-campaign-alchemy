@@ -65,19 +65,14 @@ export const mapCampaignToReplacements = (campaign: Campaign) => {
     number_of_variants: campaign.settings.numberOfVariants || '1',
     language: campaign.settings.language || 'English',
     tone_style: toneStyleMap[campaign.settings.toneStyle] || campaign.settings.toneStyle,
-    brand_tone: brandToneMap[campaign.settings.brandTone] || campaign.settings.brandTone,
-    
-    // Additional targeting flags
-    include_inactive: campaign.targeting.includeInactive ? 'Yes' : 'No',
-    include_low_spenders: campaign.targeting.includeLowSpenders ? 'Yes' : 'No',
-    include_new_users: campaign.targeting.includeNewUsers ? 'Yes' : 'No'
+    brand_tone: brandToneMap[campaign.settings.brandTone] || campaign.settings.brandTone
   };
 
-  console.log('=== SIMPLIFIED API MAPPING ===');
+  console.log('=== CLEANED API MAPPING ===');
   console.log('Campaign data:', campaign);
   console.log('Generated replacements:', replacements);
   console.log('All replacement keys:', Object.keys(replacements));
-  console.log('===============================');
+  console.log('============================');
 
   return replacements;
 };

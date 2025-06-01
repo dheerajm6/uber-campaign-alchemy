@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,11 +25,6 @@ const CampaignBuilder: React.FC = () => {
       engagement: '',
       activity: '',
       location: '',
-    },
-    targeting: {
-      includeInactive: false,
-      includeLowSpenders: false,
-      includeNewUsers: false,
     },
     settings: {
       numberOfVariants: '1',
@@ -93,11 +89,6 @@ const CampaignBuilder: React.FC = () => {
       userType: '',
       campaignType: '',
       filters: { engagement: '', activity: '', location: '' },
-      targeting: { 
-        includeInactive: false, 
-        includeLowSpenders: false, 
-        includeNewUsers: false,
-      },
       settings: { numberOfVariants: '1', language: 'English', toneStyle: '', brandTone: '' },
       generatedMessage: '',
       isGenerating: false,
