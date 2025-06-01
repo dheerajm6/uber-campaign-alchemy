@@ -49,30 +49,7 @@ export const mapCampaignToReplacements = (campaign: Campaign) => {
     'premium': 'Premium and sophisticated brand voice'
   };
 
-  const targetAudienceMap: { [key: string]: string } = {
-    'new_users': 'New Users',
-    'active_users': 'Active Users',
-    'lapsed_users': 'Lapsed Users',
-    'high_value': 'High Value Users',
-    'all_users': 'All Users'
-  };
-
-  const campaignBudgetMap: { [key: string]: string } = {
-    'low': 'Low Budget ($0-$1000)',
-    'medium': 'Medium Budget ($1000-$5000)',
-    'high': 'High Budget ($5000-$15000)',
-    'premium': 'Premium Budget ($15000+)'
-  };
-
-  const desiredOutcomeMap: { [key: string]: string } = {
-    'increase_engagement': 'Increase user engagement and drive action',
-    'drive_conversions': 'Drive conversions and sales',
-    'boost_retention': 'Boost user retention and loyalty',
-    'generate_leads': 'Generate qualified leads',
-    'increase_awareness': 'Increase brand awareness'
-  };
-
-  // Map ALL variables that your Hyperleap API expects
+  // Map only the variables that your Hyperleap API actually accepts
   const replacements = {
     // Core campaign details
     channel_type: channelMap[campaign.channel] || campaign.channel,
@@ -83,11 +60,6 @@ export const mapCampaignToReplacements = (campaign: Campaign) => {
     user_behavior: engagementMap[campaign.filters.engagement] || campaign.filters.engagement,
     activity_pattern: activityMap[campaign.filters.activity] || campaign.filters.activity,
     location: campaign.filters.location || 'All locations',
-    
-    // Additional targeting parameters
-    target_audience: targetAudienceMap[campaign.targeting.targetAudience] || campaign.targeting.targetAudience,
-    campaign_budget: campaignBudgetMap[campaign.targeting.campaignBudget] || campaign.targeting.campaignBudget,
-    desired_outcome: desiredOutcomeMap[campaign.targeting.desiredOutcome] || campaign.targeting.desiredOutcome,
     
     // Campaign settings
     number_of_variants: campaign.settings.numberOfVariants || '1',
@@ -101,11 +73,11 @@ export const mapCampaignToReplacements = (campaign: Campaign) => {
     include_new_users: campaign.targeting.includeNewUsers ? 'Yes' : 'No'
   };
 
-  console.log('=== COMPLETE API MAPPING ===');
+  console.log('=== SIMPLIFIED API MAPPING ===');
   console.log('Campaign data:', campaign);
   console.log('Generated replacements:', replacements);
   console.log('All replacement keys:', Object.keys(replacements));
-  console.log('============================');
+  console.log('===============================');
 
   return replacements;
 };

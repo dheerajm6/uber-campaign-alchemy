@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
-import { Users, Settings, Target, DollarSign } from "lucide-react";
+import { Users, Settings } from "lucide-react";
 import { Campaign } from "@/types/campaign";
 
 interface TargetingStepProps {
@@ -102,81 +102,6 @@ const TargetingStep: React.FC<TargetingStepProps> = ({ campaign, setCampaign }) 
                 </SelectContent>
               </Select>
             </div>
-          </div>
-
-          <Separator />
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Target Audience</Label>
-              <Select
-                value={campaign.targeting.targetAudience}
-                onValueChange={(value) =>
-                  setCampaign(prev => ({
-                    ...prev,
-                    targeting: { ...prev.targeting, targetAudience: value }
-                  }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select audience" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="new_users">New Users</SelectItem>
-                  <SelectItem value="active_users">Active Users</SelectItem>
-                  <SelectItem value="lapsed_users">Lapsed Users</SelectItem>
-                  <SelectItem value="high_value">High Value Users</SelectItem>
-                  <SelectItem value="all_users">All Users</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Campaign Budget</Label>
-              <Select
-                value={campaign.targeting.campaignBudget}
-                onValueChange={(value) =>
-                  setCampaign(prev => ({
-                    ...prev,
-                    targeting: { ...prev.targeting, campaignBudget: value }
-                  }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select budget" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="low">Low ($0-$1000)</SelectItem>
-                  <SelectItem value="medium">Medium ($1000-$5000)</SelectItem>
-                  <SelectItem value="high">High ($5000-$15000)</SelectItem>
-                  <SelectItem value="premium">Premium ($15000+)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Desired Outcome</Label>
-            <Select
-              value={campaign.targeting.desiredOutcome}
-              onValueChange={(value) =>
-                setCampaign(prev => ({
-                  ...prev,
-                  targeting: { ...prev.targeting, desiredOutcome: value }
-                }))
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select desired outcome" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="increase_engagement">Increase Engagement</SelectItem>
-                <SelectItem value="drive_conversions">Drive Conversions</SelectItem>
-                <SelectItem value="boost_retention">Boost Retention</SelectItem>
-                <SelectItem value="generate_leads">Generate Leads</SelectItem>
-                <SelectItem value="increase_awareness">Increase Awareness</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
 
           <Separator />
