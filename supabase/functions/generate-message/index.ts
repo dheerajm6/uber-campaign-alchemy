@@ -18,10 +18,32 @@ serve(async (req) => {
     // Get the Hyperleap API key from Supabase secrets
     const hyperleapApiKey = Deno.env.get('HYPERLEAP_API_KEY')
     
+    console.log('=== DETAILED ENVIRONMENT DEBUG ===')
+    console.log('All environment variables:')
+    for (const [key, value] of Object.entries(Deno.env.toObject())) {
+      if (key.includes('HYPERLEAP') || key.includes('API')) {
+        console.log(`${key}: ${value ? `${value.slice(0, 8)}...` : 'undefined'}`)
+      }
+    }
+    console.log('HYPERLEAP_API_KEY specifically:', hyperleapApiKey ? `${hyperleapApiKey.slice(0, 8)}...` : 'NOT FOUND')
+    console.log('================================')
+    
     if (!hyperleapApiKey) {
       console.error('HYPERLEAP_API_KEY not found in environment variables')
+      console.error('Available environment variables containing API or HYPERLEAP:')
+      for (const [key, value] of Object.entries(Deno.env.toObject())) {
+        if (key.toUpperCase().includes('API') || key.toUpperCase().includes('HYPERLEAP')) {
+          console.error(`- ${key}: ${value ? 'SET' : 'NOT SET'}`)
+        }
+      }
+      
       return new Response(
-        JSON.stringify({ error: 'API key not configured' }),
+        JSON.stringify({ 
+          error: 'HYPERLEAP_API_KEY not configured in Supabase Edge Function Secrets',
+          availableKeys: Object.keys(Deno.env.toObject()).filter(key => 
+            key.toUpperCase().includes('API') || key.toUpperCase().includes('HYPERLEAP')
+          )
+        }),
         { 
           status: 500, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
