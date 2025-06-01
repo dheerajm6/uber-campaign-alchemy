@@ -31,13 +31,14 @@ serve(async (req) => {
 
     console.log('=== EDGE FUNCTION DEBUG ===')
     console.log('API Key available:', !!hyperleapApiKey)
+    console.log('API Key length:', hyperleapApiKey?.length)
     console.log('Replacements received:', replacements)
     console.log('=========================')
 
-    // Correct request format for Hyperleap API
+    // Updated request format for Hyperleap API
     const requestBody = {
-      prompt_id: '9ab5aa1f-b408-4881-9355-d82bf23c52dd',
-      prompt_version_id: '7c3a9c75-150e-4d92-99de-af31ff065bb9',
+      promptId: '9ab5aa1f-b408-4881-9355-d82bf23c52dd',
+      promptVersionId: '7c3a9c75-150e-4d92-99de-af31ff065bb9',
       replacements: replacements
     }
 
@@ -50,24 +51,34 @@ serve(async (req) => {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${hyperleapApiKey}`,
         'Accept': 'application/json',
+        'User-Agent': 'Supabase-Edge-Function',
       },
       body: JSON.stringify(requestBody),
     })
     
     console.log('Response status:', response.status)
     console.log('Response statusText:', response.statusText)
+    console.log('Response headers:', Object.fromEntries(response.headers.entries()))
 
     if (!response.ok) {
       const errorText = await response.text()
       console.error('=== API ERROR RESPONSE ===')
       console.error('Status:', response.status)
+      console.error('StatusText:', response.statusText)
       console.error('Response body:', errorText)
+      console.error('Request URL:', 'https://api.hyperleap.ai/prompt-runs/run')
+      console.error('Request headers:', {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${hyperleapApiKey?.substring(0, 10)}...`,
+        'Accept': 'application/json',
+      })
       console.error('==========================')
       
       return new Response(
         JSON.stringify({ 
           error: `Hyperleap API Error: ${response.status} ${response.statusText}`,
-          details: errorText
+          details: errorText,
+          requestBody: requestBody
         }),
         { 
           status: response.status,
@@ -77,17 +88,19 @@ serve(async (req) => {
     }
 
     const data = await response.json()
-    console.log('API Response:', JSON.stringify(data, null, 2))
+    console.log('API Response structure:', Object.keys(data))
+    console.log('Full API Response:', JSON.stringify(data, null, 2))
 
-    // Check for the generated message in the response
-    const generatedMessage = data.output || data.result || data.message || data.text
+    // Check for the generated message in the response - try different possible fields
+    const generatedMessage = data.output || data.result || data.message || data.text || data.content || data.response
 
     if (!generatedMessage) {
-      console.error('No message found in response:', data)
+      console.error('No message found in response. Available fields:', Object.keys(data))
       return new Response(
         JSON.stringify({ 
           error: 'No generated message found in API response',
-          responseData: data
+          responseData: data,
+          availableFields: Object.keys(data)
         }),
         { 
           status: 500,
@@ -111,12 +124,14 @@ serve(async (req) => {
     console.error('=== EDGE FUNCTION ERROR ===')
     console.error('Error details:', error)
     console.error('Error message:', error instanceof Error ? error.message : String(error))
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace')
     console.error('===========================')
     
     return new Response(
       JSON.stringify({ 
         error: error instanceof Error ? error.message : 'Unknown error occurred',
-        type: 'edge_function_error'
+        type: 'edge_function_error',
+        stack: error instanceof Error ? error.stack : undefined
       }),
       { 
         status: 500,
