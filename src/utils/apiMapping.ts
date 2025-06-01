@@ -21,38 +21,52 @@ export const mapCampaignToReplacements = (campaign: Campaign) => {
     'behavioral': 'Drive specific user behaviors'
   };
 
-  const engagementToBehaviorMap: { [key: string]: string } = {
-    'high': 'Highly engaged users who frequently use the app',
-    'medium': 'Moderately engaged users with regular usage',
-    'low': 'Low engagement users who rarely use the app',
-    'inactive': 'Inactive users who haven\'t used the app recently'
-  };
+  // Only send variables that are actually collected and likely defined in your prompt
+  const replacements: { [key: string]: string } = {};
 
-  const activityToPatternMap: { [key: string]: string } = {
-    '7days': 'Active in the last 7 days',
-    '30days': 'Active in the last 30 days',
-    '90days': 'Active in the last 90 days',
-    'never': 'Never been active'
-  };
+  // Core required fields
+  if (campaign.channel) {
+    replacements.channel_type = channelMap[campaign.channel] || campaign.channel;
+  }
+  
+  if (campaign.userType) {
+    replacements.user_type = userTypeMap[campaign.userType] || campaign.userType;
+  }
+  
+  if (campaign.campaignType) {
+    replacements.campaign_goal = campaignGoalMap[campaign.campaignType] || campaign.campaignType;
+  }
 
-  const replacements = {
-    channel_type: channelMap[campaign.channel] || campaign.channel,
-    user_type: userTypeMap[campaign.userType] || campaign.userType,
-    campaign_goal: campaignGoalMap[campaign.campaignType] || campaign.campaignType,
-    user_behavior: engagementToBehaviorMap[campaign.filters.engagement] || 'General users',
-    desired_outcome: 'Increase user engagement and drive action',
-    brand_tone: 'Professional, friendly, and trustworthy - consistent with Uber\'s brand voice',
-    location: campaign.filters.location || 'All locations',
-    behavior_pattern: activityToPatternMap[campaign.filters.activity] || 'General activity pattern',
-    tone_style: 'Concise, engaging, and action-oriented',
-    language: 'English',
-    number_of_variants: '1'
-  };
+  // Optional fields - only add if they have values
+  if (campaign.filters.engagement) {
+    const engagementMap: { [key: string]: string } = {
+      'high': 'Highly engaged users',
+      'medium': 'Moderately engaged users',
+      'low': 'Low engagement users',
+      'inactive': 'Inactive users'
+    };
+    replacements.user_behavior = engagementMap[campaign.filters.engagement] || campaign.filters.engagement;
+  }
 
-  console.log('=== API MAPPING DEBUG ===');
+  if (campaign.filters.location && campaign.filters.location !== 'all') {
+    replacements.location = campaign.filters.location;
+  }
+
+  if (campaign.filters.activity) {
+    const activityMap: { [key: string]: string } = {
+      '7days': 'Active in last 7 days',
+      '30days': 'Active in last 30 days',
+      '90days': 'Active in last 90 days',
+      'never': 'Never active'
+    };
+    replacements.activity_pattern = activityMap[campaign.filters.activity] || campaign.filters.activity;
+  }
+
+  console.log('=== SIMPLIFIED API MAPPING ===');
   console.log('Campaign data:', campaign);
   console.log('Generated replacements:', replacements);
-  console.log('========================');
+  console.log('Replacement keys:', Object.keys(replacements));
+  console.log('==============================');
 
   return replacements;
 };
