@@ -29,6 +29,9 @@ const CampaignBuilder: React.FC = () => {
       includeInactive: false,
       includeLowSpenders: false,
       includeNewUsers: false,
+      targetAudience: '',
+      campaignBudget: '',
+      desiredOutcome: '',
     },
     settings: {
       numberOfVariants: '1',
@@ -87,13 +90,20 @@ const CampaignBuilder: React.FC = () => {
       description: `${campaign.campaignType} campaign sent via ${campaign.channel} to ${campaign.userType}`,
     });
     
-    // Reset form
+    // Reset form with all new fields
     setCampaign({
       channel: '',
       userType: '',
       campaignType: '',
       filters: { engagement: '', activity: '', location: '' },
-      targeting: { includeInactive: false, includeLowSpenders: false, includeNewUsers: false },
+      targeting: { 
+        includeInactive: false, 
+        includeLowSpenders: false, 
+        includeNewUsers: false,
+        targetAudience: '',
+        campaignBudget: '',
+        desiredOutcome: '',
+      },
       settings: { numberOfVariants: '1', language: 'English', toneStyle: '', brandTone: '' },
       generatedMessage: '',
       isGenerating: false,

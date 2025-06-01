@@ -9,6 +9,9 @@ export interface CampaignTargeting {
   includeInactive: boolean;
   includeLowSpenders: boolean;
   includeNewUsers: boolean;
+  targetAudience: string;
+  campaignBudget: string;
+  desiredOutcome: string;
 }
 
 export interface CampaignSettings {

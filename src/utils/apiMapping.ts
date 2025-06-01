@@ -49,6 +49,29 @@ export const mapCampaignToReplacements = (campaign: Campaign) => {
     'premium': 'Premium and sophisticated brand voice'
   };
 
+  const targetAudienceMap: { [key: string]: string } = {
+    'new_users': 'New Users',
+    'active_users': 'Active Users',
+    'lapsed_users': 'Lapsed Users',
+    'high_value': 'High Value Users',
+    'all_users': 'All Users'
+  };
+
+  const campaignBudgetMap: { [key: string]: string } = {
+    'low': 'Low Budget ($0-$1000)',
+    'medium': 'Medium Budget ($1000-$5000)',
+    'high': 'High Budget ($5000-$15000)',
+    'premium': 'Premium Budget ($15000+)'
+  };
+
+  const desiredOutcomeMap: { [key: string]: string } = {
+    'increase_engagement': 'Increase user engagement and drive action',
+    'drive_conversions': 'Drive conversions and sales',
+    'boost_retention': 'Boost user retention and loyalty',
+    'generate_leads': 'Generate qualified leads',
+    'increase_awareness': 'Increase brand awareness'
+  };
+
   // Map ALL variables that your Hyperleap API expects
   const replacements = {
     // Core campaign details
@@ -56,19 +79,26 @@ export const mapCampaignToReplacements = (campaign: Campaign) => {
     user_type: userTypeMap[campaign.userType] || campaign.userType,
     campaign_goal: campaignGoalMap[campaign.campaignType] || campaign.campaignType,
     
-    // User targeting
-    user_behavior: engagementMap[campaign.filters.engagement] || 'General users',
-    activity_pattern: activityMap[campaign.filters.activity] || 'General activity pattern',
+    // User targeting and filters
+    user_behavior: engagementMap[campaign.filters.engagement] || campaign.filters.engagement,
+    activity_pattern: activityMap[campaign.filters.activity] || campaign.filters.activity,
     location: campaign.filters.location || 'All locations',
+    
+    // Additional targeting parameters
+    target_audience: targetAudienceMap[campaign.targeting.targetAudience] || campaign.targeting.targetAudience,
+    campaign_budget: campaignBudgetMap[campaign.targeting.campaignBudget] || campaign.targeting.campaignBudget,
+    desired_outcome: desiredOutcomeMap[campaign.targeting.desiredOutcome] || campaign.targeting.desiredOutcome,
     
     // Campaign settings
     number_of_variants: campaign.settings.numberOfVariants || '1',
     language: campaign.settings.language || 'English',
-    tone_style: toneStyleMap[campaign.settings.toneStyle] || 'Professional and engaging',
-    brand_tone: brandToneMap[campaign.settings.brandTone] || 'Professional, friendly, and trustworthy',
+    tone_style: toneStyleMap[campaign.settings.toneStyle] || campaign.settings.toneStyle,
+    brand_tone: brandToneMap[campaign.settings.brandTone] || campaign.settings.brandTone,
     
-    // Additional context
-    desired_outcome: 'Increase user engagement and drive action'
+    // Additional targeting flags
+    include_inactive: campaign.targeting.includeInactive ? 'Yes' : 'No',
+    include_low_spenders: campaign.targeting.includeLowSpenders ? 'Yes' : 'No',
+    include_new_users: campaign.targeting.includeNewUsers ? 'Yes' : 'No'
   };
 
   console.log('=== COMPLETE API MAPPING ===');
