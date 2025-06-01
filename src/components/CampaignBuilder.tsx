@@ -6,8 +6,7 @@ import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { Campaign } from "@/types/campaign";
 import { channels, userTypes, campaignTypes } from "@/utils/campaignData";
-import { mapCampaignToReplacements } from "@/utils/apiMapping";
-import { supabase } from "@/integrations/supabase/client";
+import { generateCampaignMessage } from "@/utils/messageGeneration";
 import ChannelAudienceStep from "@/components/campaign/ChannelAudienceStep";
 import CampaignTypeStep from "@/components/campaign/CampaignTypeStep";
 import TargetingStep from "@/components/campaign/TargetingStep";
@@ -39,32 +38,14 @@ const CampaignBuilder: React.FC = () => {
     setCampaign(prev => ({ ...prev, isGenerating: true }));
     
     try {
-      console.log('=== USING EDGE FUNCTION ===');
+      console.log('=== GENERATING MESSAGE ===');
       console.log('Campaign data:', campaign);
       
-      const replacements = mapCampaignToReplacements(campaign);
-      console.log('Generated replacements:', replacements);
-
-      // Call the Supabase Edge Function
-      const { data, error } = await supabase.functions.invoke('generate-message', {
-        body: { replacements }
-      });
-
-      console.log('Edge function response:', { data, error });
-
-      if (error) {
-        console.error('Edge function error:', error);
-        throw new Error(error.message || 'Failed to generate message');
-      }
-
-      if (!data?.message) {
-        console.error('No message in response:', data);
-        throw new Error('No generated message found in response');
-      }
+      const message = await generateCampaignMessage(campaign);
       
       setCampaign(prev => ({ 
         ...prev, 
-        generatedMessage: data.message,
+        generatedMessage: message,
         isGenerating: false 
       }));
 
@@ -74,7 +55,7 @@ const CampaignBuilder: React.FC = () => {
       });
 
       console.log('=== SUCCESS ===');
-      console.log('Generated message:', data.message);
+      console.log('Generated message:', message);
       console.log('===============');
 
     } catch (error) {
@@ -83,9 +64,12 @@ const CampaignBuilder: React.FC = () => {
       console.error('================================');
       
       setCampaign(prev => ({ ...prev, isGenerating: false }));
+      
+      const errorMessage = error instanceof Error ? error.message : "Failed to generate message. Please try again.";
+      
       toast({
         title: "Generation Failed",
-        description: error instanceof Error ? error.message : "Failed to generate message. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     }
