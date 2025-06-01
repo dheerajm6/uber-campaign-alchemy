@@ -7,45 +7,85 @@ const HYPERLEAP_API_URL = 'https://api.hyperleap.ai/prompt-runs/run';
 const PROMPT_ID = '9ab5aa1f-b408-4881-9355-d82bf23c52dd';
 const PROMPT_VERSION_ID = '7c3a9c75-150e-4d92-99de-af31ff065bb9';
 
-// For now, we'll use direct frontend calls since Edge Function has network issues
 export const generateCampaignMessage = async (campaign: Campaign): Promise<string> => {
   const replacements = mapCampaignToReplacements(campaign);
   
-  console.log('=== DIRECT FRONTEND APPROACH ===');
-  console.log('Attempting direct frontend API call...');
+  // Check if we have the API key for direct frontend calls
+  const apiKey = import.meta.env.VITE_HYPERLEAP_API_KEY;
   
-  try {
-    return await generateMessageDirectly(replacements);
-  } catch (error) {
-    console.error('Direct frontend call failed:', error);
+  if (apiKey) {
+    console.log('=== USING REAL HYPERLEAP API ===');
+    console.log('Attempting direct frontend API call to Hyperleap...');
     
-    // Fallback to Edge Function as last resort
-    console.log('Trying Edge Function as fallback...');
     try {
-      const { data, error: edgeError } = await supabase.functions.invoke('generate-message', {
-        body: { replacements }
-      });
+      return await generateMessageDirectly(replacements, apiKey);
+    } catch (error) {
+      console.error('Direct Hyperleap API call failed:', error);
+      
+      // Fallback to Edge Function as backup
+      console.log('Trying Edge Function as fallback...');
+      try {
+        const { data, error: edgeError } = await supabase.functions.invoke('generate-message', {
+          body: { replacements }
+        });
 
-      if (edgeError) {
-        throw new Error(edgeError.message || 'Edge Function failed');
-      }
+        if (edgeError) {
+          throw new Error(edgeError.message || 'Edge Function failed');
+        }
 
-      if (data?.message) {
-        return data.message;
+        if (data?.message) {
+          return data.message;
+        }
+      } catch (edgeError) {
+        console.error('Edge Function also failed:', edgeError);
       }
-    } catch (edgeError) {
-      console.error('Edge Function also failed:', edgeError);
+      
+      // Final fallback to mock
+      console.log('Falling back to mock generator...');
+      return generateMockMessage(replacements);
     }
-    
-    throw new Error(
-      'Message generation is temporarily unavailable. Please try again in a few minutes or contact support if the issue persists.'
-    );
+  } else {
+    console.log('=== NO API KEY - USING MOCK ===');
+    console.log('VITE_HYPERLEAP_API_KEY not found, using mock generator...');
+    return generateMockMessage(replacements);
   }
 };
 
-// Direct frontend API call
-const generateMessageDirectly = async (replacements: any): Promise<string> => {
-  // For testing, we'll use a mock response since we don't have the API key in frontend
+// Real Hyperleap API call
+const generateMessageDirectly = async (replacements: any, apiKey: string): Promise<string> => {
+  console.log('Making request to Hyperleap API...');
+  console.log('Replacements:', replacements);
+  
+  const response = await fetch(HYPERLEAP_API_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      prompt_id: PROMPT_ID,
+      prompt_version_id: PROMPT_VERSION_ID,
+      replacements: replacements,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Hyperleap API failed with status ${response.status}: ${errorText}`);
+  }
+
+  const data = await response.json();
+  console.log('Hyperleap API response:', data);
+  
+  if (data.output) {
+    return data.output;
+  }
+  
+  throw new Error('No message content in Hyperleap API response');
+};
+
+// Mock generator as fallback
+const generateMockMessage = async (replacements: any): Promise<string> => {
   console.log('=== MOCK MESSAGE GENERATION ===');
   console.log('Campaign replacements:', replacements);
   
