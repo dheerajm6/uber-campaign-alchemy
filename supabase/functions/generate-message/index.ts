@@ -35,7 +35,7 @@ serve(async (req) => {
     console.log('Replacements received:', replacements)
     console.log('=========================')
 
-    // Correct request format based on Hyperleap API docs
+    // Request body for Hyperleap API
     const requestBody = {
       prompt_id: '9ab5aa1f-b408-4881-9355-d82bf23c52dd',
       prompt_version_id: '7c3a9c75-150e-4d92-99de-af31ff065bb9',
@@ -45,77 +45,114 @@ serve(async (req) => {
     console.log('Request body:', JSON.stringify(requestBody, null, 2))
     console.log('Making request to Hyperleap API...')
     
-    const response = await fetch('https://api.hyperleap.ai/prompts/run', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${hyperleapApiKey}`,
-      },
-      body: JSON.stringify(requestBody),
-    })
-    
-    console.log('Response status:', response.status)
-    console.log('Response statusText:', response.statusText)
-    console.log('Response headers:', Object.fromEntries(response.headers.entries()))
-
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error('=== API ERROR RESPONSE ===')
-      console.error('Status:', response.status)
-      console.error('StatusText:', response.statusText)
-      console.error('Response body:', errorText)
-      console.error('Request URL:', 'https://api.hyperleap.ai/prompts/run')
-      console.error('Request headers:', {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${hyperleapApiKey?.substring(0, 10)}...`,
-      })
-      console.error('==========================')
-      
-      return new Response(
-        JSON.stringify({ 
-          error: `Hyperleap API Error: ${response.status} ${response.statusText}`,
-          details: errorText,
-          requestBody: requestBody
-        }),
-        { 
-          status: response.status,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    // Add retry logic with exponential backoff
+    let lastError;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        console.log(`Attempt ${attempt}/3 to call Hyperleap API`)
+        
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 15000) // 15 second timeout
+        
+        const response = await fetch('https://api.hyperleap.ai/prompts/run', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${hyperleapApiKey}`,
+            'User-Agent': 'Supabase-Edge-Function/1.0',
+          },
+          body: JSON.stringify(requestBody),
+          signal: controller.signal,
+        })
+        
+        clearTimeout(timeoutId)
+        
+        console.log(`Attempt ${attempt} - Response status:`, response.status)
+        console.log(`Attempt ${attempt} - Response statusText:`, response.statusText)
+        
+        if (!response.ok) {
+          const errorText = await response.text()
+          console.error(`=== API ERROR RESPONSE (Attempt ${attempt}) ===`)
+          console.error('Status:', response.status)
+          console.error('StatusText:', response.statusText)
+          console.error('Response body:', errorText)
+          console.error('========================================')
+          
+          // If it's a 4xx error, don't retry
+          if (response.status >= 400 && response.status < 500) {
+            return new Response(
+              JSON.stringify({ 
+                error: `Hyperleap API Error: ${response.status} ${response.statusText}`,
+                details: errorText,
+                requestBody: requestBody
+              }),
+              { 
+                status: response.status,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+              }
+            )
+          }
+          
+          // For 5xx errors, continue to retry
+          lastError = new Error(`HTTP ${response.status}: ${response.statusText}`)
+          if (attempt === 3) throw lastError
+          continue
         }
-      )
-    }
 
-    const data = await response.json()
-    console.log('API Response structure:', Object.keys(data))
-    console.log('Full API Response:', JSON.stringify(data, null, 2))
+        const data = await response.json()
+        console.log('API Response structure:', Object.keys(data))
+        console.log('Full API Response:', JSON.stringify(data, null, 2))
 
-    // Based on the docs, the response should have an 'output' field
-    const generatedMessage = data.output
+        // Based on the docs, the response should have an 'output' field
+        const generatedMessage = data.output
 
-    if (!generatedMessage) {
-      console.error('No output found in response. Available fields:', Object.keys(data))
-      return new Response(
-        JSON.stringify({ 
-          error: 'No generated message found in API response',
-          responseData: data,
-          availableFields: Object.keys(data)
-        }),
-        { 
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        if (!generatedMessage) {
+          console.error('No output found in response. Available fields:', Object.keys(data))
+          return new Response(
+            JSON.stringify({ 
+              error: 'No generated message found in API response',
+              responseData: data,
+              availableFields: Object.keys(data)
+            }),
+            { 
+              status: 500,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            }
+          )
         }
-      )
-    }
 
-    console.log('=== SUCCESS ===')
-    console.log('Generated message:', generatedMessage)
-    console.log('===============')
+        console.log('=== SUCCESS ===')
+        console.log('Generated message:', generatedMessage)
+        console.log('===============')
 
-    return new Response(
-      JSON.stringify({ message: String(generatedMessage).trim() }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        return new Response(
+          JSON.stringify({ message: String(generatedMessage).trim() }),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        )
+        
+      } catch (fetchError) {
+        console.error(`=== FETCH ERROR (Attempt ${attempt}) ===`)
+        console.error('Error details:', fetchError)
+        console.error('Error message:', fetchError instanceof Error ? fetchError.message : String(fetchError))
+        console.error('Error name:', fetchError instanceof Error ? fetchError.name : 'Unknown')
+        console.error('=====================================')
+        
+        lastError = fetchError
+        
+        // If this is the last attempt, break
+        if (attempt === 3) break
+        
+        // Wait before retrying (exponential backoff: 1s, 2s)
+        const delay = Math.pow(2, attempt - 1) * 1000
+        console.log(`Waiting ${delay}ms before retry...`)
+        await new Promise(resolve => setTimeout(resolve, delay))
       }
-    )
+    }
+
+    // If we get here, all attempts failed
+    throw lastError
 
   } catch (error) {
     console.error('=== EDGE FUNCTION ERROR ===')
