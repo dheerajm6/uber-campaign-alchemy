@@ -1,9 +1,8 @@
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "@/hooks/useAuth";
 import LoginForm from "@/components/LoginForm";
 import AdminSettings from "@/components/AdminSettings";
@@ -14,85 +13,9 @@ import { BarChart3, MessageSquare, Users, Settings, LogOut } from "lucide-react"
 
 const Index = () => {
   const { user, logout, isAuthenticated } = useAuth();
-  const [apiKey, setApiKey] = useState<string>("");
-
-  // Check if API key exists on component mount and create a listener for changes
-  useEffect(() => {
-    const checkApiKey = () => {
-      const savedApiKey = localStorage.getItem('hyperleap_api_key');
-      console.log('=== API KEY CHECK ===');
-      console.log('Saved API key exists:', !!savedApiKey);
-      console.log('Current apiKey state:', apiKey);
-      console.log('===================');
-      
-      if (savedApiKey) {
-        setApiKey(savedApiKey);
-      } else {
-        setApiKey("");
-      }
-    };
-
-    // Initial check
-    checkApiKey();
-
-    // Listen for storage changes (when API key is saved/removed)
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'hyperleap_api_key') {
-        console.log('=== STORAGE CHANGE DETECTED ===');
-        console.log('New value:', e.newValue);
-        console.log('==============================');
-        checkApiKey();
-      }
-    };
-
-    // Listen for custom events (for same-tab updates)
-    const handleApiKeyChange = () => {
-      console.log('=== CUSTOM API KEY EVENT ===');
-      checkApiKey();
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    window.addEventListener('apiKeyChanged', handleApiKeyChange);
-
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('apiKeyChanged', handleApiKeyChange);
-    };
-  }, []);
 
   if (!isAuthenticated) {
     return <LoginForm />;
-  }
-
-  // For regular users, check if API key is available
-  if (user?.role === 'user' && !apiKey) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-bold">Uber Campaign Console</CardTitle>
-            <CardDescription>
-              AI-powered marketing campaign management
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Alert>
-              <AlertDescription>
-                The administrator needs to configure the Hyperleap API key before you can use the campaign features.
-              </AlertDescription>
-            </Alert>
-            <Button 
-              onClick={logout}
-              variant="outline"
-              className="w-full"
-            >
-              <LogOut className="w-4 h-4 mr-2" />
-              Logout
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
   }
 
   return (
@@ -155,7 +78,7 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="campaigns">
-            <CampaignBuilder apiKey={apiKey} />
+            <CampaignBuilder apiKey="" />
           </TabsContent>
 
           <TabsContent value="targeting">

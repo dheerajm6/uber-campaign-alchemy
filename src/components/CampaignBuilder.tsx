@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Campaign } from "@/types/campaign";
 import { channels, userTypes, campaignTypes } from "@/utils/campaignData";
 import { mapCampaignToReplacements } from "@/utils/apiMapping";
+import { supabase } from "@/integrations/supabase/client";
 import ChannelAudienceStep from "@/components/campaign/ChannelAudienceStep";
 import CampaignTypeStep from "@/components/campaign/CampaignTypeStep";
 import TargetingStep from "@/components/campaign/TargetingStep";
@@ -39,73 +40,35 @@ const CampaignBuilder: React.FC<CampaignBuilderProps> = ({ apiKey }) => {
   });
 
   const generateMessage = async () => {
-    if (!apiKey) {
-      toast({
-        title: "API Key Missing",
-        description: "Please contact the administrator to configure the Hyperleap API key.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setCampaign(prev => ({ ...prev, isGenerating: true }));
     
     try {
-      console.log('=== HYPERLEAP API CALL DEBUG ===');
-      console.log('API Key available:', !!apiKey);
-      console.log('API Key length:', apiKey.length);
-      console.log('API Key prefix:', apiKey.substring(0, 10) + '...');
+      console.log('=== USING EDGE FUNCTION ===');
+      console.log('Campaign data:', campaign);
       
       const replacements = mapCampaignToReplacements(campaign);
+      console.log('Generated replacements:', replacements);
 
-      const requestBody = {
-        promptId: '9ab5aa1f-b408-4881-9355-d82bf23c52dd',
-        promptVersionId: '7c3a9c75-150e-4d92-99de-af31ff065bb9',
-        replacements: replacements
-      };
-
-      console.log('Full request body:', JSON.stringify(requestBody, null, 2));
-
-      const response = await fetch('https://api.hyperleap.ai/prompt-runs/run', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-hl-api-key': apiKey,
-        },
-        body: JSON.stringify(requestBody),
+      // Call the Supabase Edge Function
+      const { data, error } = await supabase.functions.invoke('generate-message', {
+        body: { replacements }
       });
 
-      console.log('Response status:', response.status);
-      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
-      
-      const responseText = await response.text();
-      console.log('Raw response:', responseText);
-      
-      if (!response.ok) {
-        console.error('API Error Response:', responseText);
-        throw new Error(`API request failed: ${response.status} - ${responseText}`);
+      console.log('Edge function response:', { data, error });
+
+      if (error) {
+        console.error('Edge function error:', error);
+        throw new Error(error.message || 'Failed to generate message');
       }
 
-      let data;
-      try {
-        data = JSON.parse(responseText);
-        console.log('Parsed response data:', data);
-      } catch (parseError) {
-        console.error('Failed to parse response as JSON:', parseError);
-        throw new Error('Invalid JSON response from API');
-      }
-      
-      // Try multiple possible response fields
-      const generatedMessage = data.output || data.result || data.message || data.text || data.content || data.response;
-      
-      if (!generatedMessage) {
-        console.error('No message found in response. Full response:', data);
-        throw new Error('No generated message found in API response');
+      if (!data?.message) {
+        console.error('No message in response:', data);
+        throw new Error('No generated message found in response');
       }
       
       setCampaign(prev => ({ 
         ...prev, 
-        generatedMessage: String(generatedMessage).trim(),
+        generatedMessage: data.message,
         isGenerating: false 
       }));
 
@@ -115,20 +78,18 @@ const CampaignBuilder: React.FC<CampaignBuilderProps> = ({ apiKey }) => {
       });
 
       console.log('=== SUCCESS ===');
-      console.log('Generated message:', generatedMessage);
+      console.log('Generated message:', data.message);
       console.log('===============');
 
     } catch (error) {
       console.error('=== ERROR GENERATING MESSAGE ===');
       console.error('Error details:', error);
-      console.error('Error type:', typeof error);
-      console.error('Error message:', error instanceof Error ? error.message : String(error));
       console.error('================================');
       
       setCampaign(prev => ({ ...prev, isGenerating: false }));
       toast({
         title: "Generation Failed",
-        description: error instanceof Error ? error.message : "Failed to generate message. Please check your API key and try again.",
+        description: error instanceof Error ? error.message : "Failed to generate message. Please try again.",
         variant: "destructive",
       });
     }
