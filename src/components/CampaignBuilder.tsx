@@ -14,11 +14,7 @@ import TargetingStep from "@/components/campaign/TargetingStep";
 import MessageGenerationStep from "@/components/campaign/MessageGenerationStep";
 import CampaignSummary from "@/components/campaign/CampaignSummary";
 
-interface CampaignBuilderProps {
-  apiKey: string;
-}
-
-const CampaignBuilder: React.FC<CampaignBuilderProps> = ({ apiKey }) => {
+const CampaignBuilder: React.FC = () => {
   const { toast } = useToast();
   const [step, setStep] = useState(1);
   const [campaign, setCampaign] = useState<Campaign>({

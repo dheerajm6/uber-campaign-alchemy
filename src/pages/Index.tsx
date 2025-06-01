@@ -78,7 +78,7 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="campaigns">
-            <CampaignBuilder apiKey="" />
+            <CampaignBuilder />
           </TabsContent>
 
           <TabsContent value="targeting">
