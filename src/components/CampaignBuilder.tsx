@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -31,6 +30,7 @@ const CampaignBuilder: React.FC = () => {
       language: 'English',
       toneStyle: '',
       brandTone: '',
+      desiredOutcome: '',
     },
     generatedMessage: '',
     isGenerating: false,
@@ -89,7 +89,7 @@ const CampaignBuilder: React.FC = () => {
       userType: '',
       campaignType: '',
       filters: { engagement: '', activity: '', location: '' },
-      settings: { numberOfVariants: '1', language: 'English', toneStyle: '', brandTone: '' },
+      settings: { numberOfVariants: '1', language: 'English', toneStyle: '', brandTone: '', desiredOutcome: '' },
       generatedMessage: '',
       isGenerating: false,
     });

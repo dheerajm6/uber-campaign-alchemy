@@ -10,6 +10,7 @@ export interface CampaignSettings {
   language: string;
   toneStyle: string;
   brandTone: string;
+  desiredOutcome: string;
 }
 
 export interface Campaign {

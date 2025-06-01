@@ -3,7 +3,6 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import { Users, Settings } from "lucide-react";
 import { Campaign } from "@/types/campaign";
 
@@ -28,7 +27,7 @@ const TargetingStep: React.FC<TargetingStepProps> = ({ campaign, setCampaign }) 
         <CardContent className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label>Engagement Level</Label>
+              <Label>User Behavior</Label>
               <Select
                 value={campaign.filters.engagement}
                 onValueChange={(value) =>
@@ -39,7 +38,7 @@ const TargetingStep: React.FC<TargetingStepProps> = ({ campaign, setCampaign }) 
                 }
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select level" />
+                  <SelectValue placeholder="Select behavior" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="high">High Engagement</SelectItem>
@@ -51,7 +50,7 @@ const TargetingStep: React.FC<TargetingStepProps> = ({ campaign, setCampaign }) 
             </div>
 
             <div className="space-y-2">
-              <Label>Activity Period</Label>
+              <Label>Behavior Pattern</Label>
               <Select
                 value={campaign.filters.activity}
                 onValueChange={(value) =>
@@ -62,7 +61,7 @@ const TargetingStep: React.FC<TargetingStepProps> = ({ campaign, setCampaign }) 
                 }
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select period" />
+                  <SelectValue placeholder="Select pattern" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="7days">Last 7 days</SelectItem>
@@ -201,6 +200,29 @@ const TargetingStep: React.FC<TargetingStepProps> = ({ campaign, setCampaign }) 
                   <SelectItem value="innovative">Innovative & Modern</SelectItem>
                   <SelectItem value="friendly">Friendly & Approachable</SelectItem>
                   <SelectItem value="premium">Premium & Sophisticated</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2 md:col-span-2">
+              <Label>Desired Outcome</Label>
+              <Select
+                value={campaign.settings.desiredOutcome}
+                onValueChange={(value) =>
+                  setCampaign(prev => ({
+                    ...prev,
+                    settings: { ...prev.settings, desiredOutcome: value }
+                  }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select desired outcome" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="increase_rides">Increase ride bookings</SelectItem>
+                  <SelectItem value="improve_retention">Improve user retention</SelectItem>
+                  <SelectItem value="boost_engagement">Boost app engagement</SelectItem>
+                  <SelectItem value="drive_referrals">Drive user referrals</SelectItem>
                 </SelectContent>
               </Select>
             </div>

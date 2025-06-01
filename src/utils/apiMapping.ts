@@ -49,30 +49,33 @@ export const mapCampaignToReplacements = (campaign: Campaign) => {
     'premium': 'Premium and sophisticated brand voice'
   };
 
-  // Map only the variables that your Hyperleap API actually accepts
+  const desiredOutcomeMap: { [key: string]: string } = {
+    'increase_rides': 'Increase ride bookings',
+    'improve_retention': 'Improve user retention',
+    'boost_engagement': 'Boost app engagement',
+    'drive_referrals': 'Drive user referrals'
+  };
+
+  // Map only the exact variables that your API accepts
   const replacements = {
-    // Core campaign details
     channel_type: channelMap[campaign.channel] || campaign.channel,
     user_type: userTypeMap[campaign.userType] || campaign.userType,
     campaign_goal: campaignGoalMap[campaign.campaignType] || campaign.campaignType,
-    
-    // User targeting and filters
     user_behavior: engagementMap[campaign.filters.engagement] || campaign.filters.engagement,
-    activity_pattern: activityMap[campaign.filters.activity] || campaign.filters.activity,
+    desired_outcome: desiredOutcomeMap[campaign.settings.desiredOutcome] || campaign.settings.desiredOutcome,
+    brand_tone: brandToneMap[campaign.settings.brandTone] || campaign.settings.brandTone,
     location: campaign.filters.location || 'All locations',
-    
-    // Campaign settings
-    number_of_variants: campaign.settings.numberOfVariants || '1',
-    language: campaign.settings.language || 'English',
+    behavior_pattern: activityMap[campaign.filters.activity] || campaign.filters.activity,
     tone_style: toneStyleMap[campaign.settings.toneStyle] || campaign.settings.toneStyle,
-    brand_tone: brandToneMap[campaign.settings.brandTone] || campaign.settings.brandTone
+    language: campaign.settings.language || 'English',
+    number_of_variants: campaign.settings.numberOfVariants || '1'
   };
 
-  console.log('=== CLEANED API MAPPING ===');
+  console.log('=== API MAPPING - EXACT PARAMETERS ===');
   console.log('Campaign data:', campaign);
   console.log('Generated replacements:', replacements);
   console.log('All replacement keys:', Object.keys(replacements));
-  console.log('============================');
+  console.log('======================================');
 
   return replacements;
 };
