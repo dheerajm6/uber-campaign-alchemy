@@ -11,12 +11,20 @@ export interface CampaignTargeting {
   includeNewUsers: boolean;
 }
 
+export interface CampaignSettings {
+  numberOfVariants: string;
+  language: string;
+  toneStyle: string;
+  brandTone: string;
+}
+
 export interface Campaign {
   channel: string;
   userType: string;
   campaignType: string;
   filters: CampaignFilters;
   targeting: CampaignTargeting;
+  settings: CampaignSettings;
   generatedMessage: string;
   isGenerating: boolean;
 }

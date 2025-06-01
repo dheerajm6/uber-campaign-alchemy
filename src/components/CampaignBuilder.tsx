@@ -30,6 +30,12 @@ const CampaignBuilder: React.FC = () => {
       includeLowSpenders: false,
       includeNewUsers: false,
     },
+    settings: {
+      numberOfVariants: '1',
+      language: 'English',
+      toneStyle: '',
+      brandTone: '',
+    },
     generatedMessage: '',
     isGenerating: false,
   });
@@ -88,6 +94,7 @@ const CampaignBuilder: React.FC = () => {
       campaignType: '',
       filters: { engagement: '', activity: '', location: '' },
       targeting: { includeInactive: false, includeLowSpenders: false, includeNewUsers: false },
+      settings: { numberOfVariants: '1', language: 'English', toneStyle: '', brandTone: '' },
       generatedMessage: '',
       isGenerating: false,
     });
