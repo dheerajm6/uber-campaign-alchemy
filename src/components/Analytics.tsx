@@ -60,12 +60,12 @@ const Analytics = () => {
       description: "Different accounts"
     },
     {
-      title: "User Account Logins",
-      value: (loginStats.userLogins['user'] || 0).toString(),
+      title: "Demo User Logins",
+      value: Object.entries(loginStats.userLogins).filter(([username]) => username !== 'admin').reduce((sum, [, count]) => sum + count, 0).toString(),
       change: "+25%",
       trend: "up" as const,
       icon: TrendingUp,
-      description: "user/user123"
+      description: "Custom usernames"
     },
     {
       title: "Last Login",
@@ -172,10 +172,11 @@ const Analytics = () => {
                 <div key={username} className="flex items-center justify-between p-4 border rounded-lg">
                   <div className="flex-1">
                     <h3 className="font-medium text-gray-900">
-                      {username === 'user' ? 'Regular User Account' : 'Admin Account'}
+                      {username === 'admin' ? 'Admin Account' : `Demo User: ${username}`}
                     </h3>
                     <p className="text-sm text-gray-600">
-                      Username: {username} • Password: {username === 'user' ? 'user123' : 'admin123'}
+                      Username: {username} • Password: demo@2024
+                      {username === 'admin' && ' (Fixed Admin)'}
                     </p>
                   </div>
                   <div className="text-right">

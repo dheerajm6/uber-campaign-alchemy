@@ -31,7 +31,12 @@ const Index = () => {
             <div>
               <h1 className="text-xl font-bold text-gray-900">Campaign Console</h1>
               <p className="text-sm text-gray-600">
-                Welcome, {user?.username} ({user?.role})
+                Welcome, {user?.username}!
+                {user?.role === 'admin' && (
+                  <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                    Admin
+                  </span>
+                )}
               </p>
             </div>
           </div>
