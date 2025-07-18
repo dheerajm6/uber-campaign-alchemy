@@ -43,28 +43,22 @@ const LoginForm = () => {
               <Input
                 id="username"
                 type="text"
-                placeholder="Enter your name (e.g., John Doe)"
+                placeholder="Enter username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
               />
-              <p className="text-xs text-gray-500">
-                Use any name to identify yourself in the demo
-              </p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <Input
                 id="password"
                 type="password"
-                placeholder="demo@2024"
+                placeholder="Enter password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
-              <p className="text-xs text-gray-500">
-                Use password: <code className="bg-gray-100 px-1 rounded">demo@2024</code>
-              </p>
             </div>
             <Button 
               type="submit"
@@ -73,12 +67,6 @@ const LoginForm = () => {
               Login
             </Button>
           </form>
-          
-          <div className="mt-4 p-3 bg-gray-50 rounded-lg text-sm text-gray-600">
-            <p className="font-medium mb-1">Demo Access:</p>
-            <p>• <strong>Regular User:</strong> Any username + demo@2024</p>
-            <p>• <strong>Admin:</strong> admin + demo@2024</p>
-          </div>
         </CardContent>
       </Card>
     </div>
