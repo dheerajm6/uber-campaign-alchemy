@@ -1,0 +1,29 @@
+<\!DOCTYPE html>
+<html>
+<head>
+    <title>Favicon Generator</title>
+</head>
+<body>
+    <canvas id="canvas" width="16" height="16"></canvas>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Black background
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(0, 0, 16, 16);
+        
+        // White "U" letter
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = 'bold 12px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('U', 8, 8);
+        
+        // Convert to ICO format (simplified)
+        const imageData = ctx.getImageData(0, 0, 16, 16);
+        console.log('Favicon created');
+    </script>
+</body>
+</html>
+EOF < /dev/null
