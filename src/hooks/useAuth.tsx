@@ -17,8 +17,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Hardcoded credentials
 const CREDENTIALS = {
-  admin: { username: 'admin', password: 'admin123', role: 'admin' as const },
-  user: { username: 'user', password: 'user123', role: 'user' as const }
+  admin: { username: 'admin', password: 'demo@2024', role: 'admin' as const },
+  user: { username: 'user', password: 'demo@2024', role: 'user' as const }
 };
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
@@ -40,6 +40,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const userData = { username: credential.username, role: credential.role };
       setUser(userData);
       localStorage.setItem('auth_user', JSON.stringify(userData));
+      
+      // Track login for analytics
+      const loginCount = localStorage.getItem('login_count') || '0';
+      const userLogins = JSON.parse(localStorage.getItem('user_logins') || '{}');
+      
+      userLogins[username] = (userLogins[username] || 0) + 1;
+      localStorage.setItem('login_count', (parseInt(loginCount) + 1).toString());
+      localStorage.setItem('user_logins', JSON.stringify(userLogins));
+      localStorage.setItem('last_login', new Date().toISOString());
+      
       return true;
     }
     return false;

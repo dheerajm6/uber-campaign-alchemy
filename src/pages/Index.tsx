@@ -9,6 +9,7 @@ import AdminSettings from "@/components/AdminSettings";
 import CampaignBuilder from "@/components/CampaignBuilder";
 import Dashboard from "@/components/Dashboard";
 import UserTargeting from "@/components/UserTargeting";
+import Analytics from "@/components/Analytics";
 import { BarChart3, MessageSquare, Users, Settings, LogOut } from "lucide-react";
 
 const Index = () => {
@@ -48,7 +49,7 @@ const Index = () => {
       {/* Main Content */}
       <main className="container mx-auto px-6 py-8">
         <Tabs defaultValue="dashboard" className="space-y-6">
-          <TabsList className={`grid w-full ${user?.role === 'admin' ? 'grid-cols-5' : 'grid-cols-4'} lg:w-auto`}>
+          <TabsList className={`grid w-full ${user?.role === 'admin' ? 'grid-cols-5' : 'grid-cols-3'} lg:w-auto`}>
             <TabsTrigger value="dashboard" className="flex items-center space-x-2">
               <BarChart3 className="w-4 h-4" />
               <span>Dashboard</span>
@@ -61,10 +62,12 @@ const Index = () => {
               <Users className="w-4 h-4" />
               <span>User Targeting</span>
             </TabsTrigger>
-            <TabsTrigger value="analytics" className="flex items-center space-x-2">
-              <BarChart3 className="w-4 h-4" />
-              <span>Analytics</span>
-            </TabsTrigger>
+            {user?.role === 'admin' && (
+              <TabsTrigger value="analytics" className="flex items-center space-x-2">
+                <BarChart3 className="w-4 h-4" />
+                <span>Analytics</span>
+              </TabsTrigger>
+            )}
             {user?.role === 'admin' && (
               <TabsTrigger value="admin" className="flex items-center space-x-2">
                 <Settings className="w-4 h-4" />
@@ -85,9 +88,11 @@ const Index = () => {
             <UserTargeting />
           </TabsContent>
 
-          <TabsContent value="analytics">
-            <Dashboard />
-          </TabsContent>
+          {user?.role === 'admin' && (
+            <TabsContent value="analytics">
+              <Analytics />
+            </TabsContent>
+          )}
 
           {user?.role === 'admin' && (
             <TabsContent value="admin">

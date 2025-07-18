@@ -1,209 +1,264 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, Filter, Users, TrendingDown, Clock, DollarSign } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/hooks/use-toast";
+import { Search, Filter, Users, TrendingDown, Clock, DollarSign, Target, MessageSquare } from "lucide-react";
+import { getUsers, getUserSegments, getUsersBySegment, initializeSampleData } from '@/services/database';
+import { useCampaignContext } from '@/contexts/CampaignContext';
+import { Database } from '@/integrations/supabase/types';
+
+type Tables = Database['public']['Tables'];
+type User = Tables['users']['Row'];
+type UserSegment = Tables['user_segments']['Row'];
 
 const UserTargeting = () => {
+  const { toast } = useToast();
+  const { selectedUsers, setSelectedUsers, selectedSegment, setSelectedSegment } = useCampaignContext();
+  const [isLoading, setIsLoading] = useState(true);
+  const [users, setUsers] = useState<User[]>([]);
+  const [segments, setSegments] = useState<UserSegment[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedSegment, setSelectedSegment] = useState('all');
+  const [engagementFilter, setEngagementFilter] = useState('all');
+  const [activeSegmentId, setActiveSegmentId] = useState<string | null>(null);
 
-  // Mock user data
-  const users = [
-    {
-      id: 1,
-      name: "Sarah Johnson",
-      email: "sarah.j@email.com",
-      type: "Rider",
-      lastActive: "2 days ago",
-      status: "Active",
-      engagement: "High",
-      totalSpent: "$324",
-      campaigns: 5,
-      tags: ["Frequent User", "High Value"]
-    },
-    {
-      id: 2,
-      name: "Mike Chen",
-      email: "m.chen@email.com",
-      type: "Driver",
-      lastActive: "1 week ago",
-      status: "Inactive",
-      engagement: "Low",
-      totalSpent: "$0",
-      campaigns: 12,
-      tags: ["Churned", "Re-engagement Target"]
-    },
-    {
-      id: 3,
-      name: "Emma Rodriguez",
-      email: "emma.r@email.com",
-      type: "Rider",
-      lastActive: "5 minutes ago",
-      status: "Active",
-      engagement: "Medium",
-      totalSpent: "$156",
-      campaigns: 3,
-      tags: ["Regular User", "Promotional"]
-    },
-    {
-      id: 4,
-      name: "James Wilson",
-      email: "j.wilson@email.com",
-      type: "Driver",
-      lastActive: "3 days ago",
-      status: "Active",
-      engagement: "High",
-      totalSpent: "$0",
-      campaigns: 8,
-      tags: ["Top Performer", "Loyalty"]
-    },
-    {
-      id: 5,
-      name: "Lisa Park",
-      email: "lisa.park@email.com",
-      type: "Rider",
-      lastActive: "2 weeks ago",
-      status: "Inactive",
-      engagement: "Low",
-      totalSpent: "$89",
-      campaigns: 7,
-      tags: ["Low Engagement", "Win-back"]
-    },
-  ];
+  useEffect(() => {
+    loadData();
+  }, []);
 
-  const segments = [
-    { value: 'all', label: 'All Users', count: users.length },
-    { value: 'active', label: 'Active Users', count: users.filter(u => u.status === 'Active').length },
-    { value: 'inactive', label: 'Inactive Users', count: users.filter(u => u.status === 'Inactive').length },
-    { value: 'high-value', label: 'High Value', count: users.filter(u => u.tags.includes('High Value')).length },
-    { value: 'churned', label: 'Churned', count: users.filter(u => u.tags.includes('Churned')).length },
-  ];
+  const loadData = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Initialize sample data if needed
+      await initializeSampleData();
+      
+      // Load users and segments
+      const [usersData, segmentsData] = await Promise.all([
+        getUsers(),
+        getUserSegments()
+      ]);
+      
+      setUsers(usersData);
+      setSegments(segmentsData);
+      setFilteredUsers(usersData);
+    } catch (error) {
+      console.error('Error loading data:', error);
+      toast({
+        title: "Error Loading Data",
+        description: "Failed to load users and segments. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  const getFilteredUsers = () => {
+  const handleSegmentSelection = async (segment: UserSegment) => {
+    try {
+      setActiveSegmentId(segment.id);
+      const segmentUsers = await getUsersBySegment(segment.filters);
+      setSelectedUsers(segmentUsers);
+      setSelectedSegment(segment);
+      setFilteredUsers(segmentUsers);
+      
+      toast({
+        title: "Segment Selected",
+        description: `Selected ${segmentUsers.length} users from "${segment.name}" segment`,
+      });
+    } catch (error) {
+      console.error('Error loading segment users:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load segment users",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    filterUsers(query, engagementFilter);
+  };
+
+  const handleEngagementFilter = (filter: string) => {
+    setEngagementFilter(filter);
+    filterUsers(searchQuery, filter);
+  };
+
+  const filterUsers = (query: string, engagement: string) => {
     let filtered = users;
+    
+    if (query) {
+      filtered = filtered.filter(user => 
+        user.username.toLowerCase().includes(query.toLowerCase()) ||
+        user.email.toLowerCase().includes(query.toLowerCase())
+      );
+    }
+    
+    if (engagement !== 'all') {
+      filtered = filtered.filter(user => user.engagement_level === engagement);
+    }
+    
+    setFilteredUsers(filtered);
+  };
 
-    if (searchQuery) {
-      filtered = filtered.filter(user =>
-        user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchQuery.toLowerCase())
+  const getBadgeColor = (engagement: string) => {
+    switch (engagement) {
+      case 'high': return 'bg-green-100 text-green-800';
+      case 'medium': return 'bg-yellow-100 text-yellow-800';
+      case 'low': return 'bg-orange-100 text-orange-800';
+      case 'inactive': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getUserTypeIcon = (userType: string) => {
+    return userType === 'drivers' ? '🚗' : '👤';
+  };
+
+  const UserList = ({ users, isLoading, emptyMessage = "No users found matching your criteria" }: {
+    users: User[];
+    isLoading: boolean;
+    emptyMessage?: string;
+  }) => {
+    if (isLoading) {
+      return (
+        <div className="space-y-4">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="flex items-center space-x-4 p-4 border rounded-lg">
+              <Skeleton className="h-10 w-10 rounded-full" />
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-4 w-48" />
+                <Skeleton className="h-3 w-64" />
+              </div>
+              <Skeleton className="h-6 w-16" />
+            </div>
+          ))}
+        </div>
       );
     }
 
-    if (selectedSegment !== 'all') {
-      switch (selectedSegment) {
-        case 'active':
-          filtered = filtered.filter(u => u.status === 'Active');
-          break;
-        case 'inactive':
-          filtered = filtered.filter(u => u.status === 'Inactive');
-          break;
-        case 'high-value':
-          filtered = filtered.filter(u => u.tags.includes('High Value'));
-          break;
-        case 'churned':
-          filtered = filtered.filter(u => u.tags.includes('Churned'));
-          break;
-      }
+    if (users.length === 0) {
+      return (
+        <div className="text-center py-8 text-gray-500">
+          {emptyMessage}
+        </div>
+      );
     }
 
-    return filtered;
+    return (
+      <div className="space-y-4">
+        {users.map((user) => (
+          <div key={user.id} className="flex items-center space-x-4 p-4 border rounded-lg hover:bg-gray-50">
+            <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center text-lg">
+              {getUserTypeIcon(user.user_type)}
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center space-x-2">
+                <h3 className="font-medium text-gray-900">{user.username}</h3>
+                <Badge variant="outline" className="text-xs">
+                  {user.user_type}
+                </Badge>
+              </div>
+              <p className="text-sm text-gray-600">{user.email}</p>
+              <p className="text-xs text-gray-500">{user.location} • Last active: {user.activity_pattern}</p>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Badge className={`text-xs ${getBadgeColor(user.engagement_level)}`}>
+                {user.engagement_level}
+              </Badge>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Active':
-        return 'bg-green-100 text-green-800';
-      case 'Inactive':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
+  const quickActions = [
+    {
+      title: "Re-engage Inactive Users",
+      description: "Target users who haven't been active recently",
+      icon: Clock,
+      color: "bg-red-50 border-red-200",
+      users: users.filter(u => u.engagement_level === 'inactive').length,
+      action: () => handleSegmentSelection({
+        id: 'inactive',
+        name: 'Inactive Users',
+        description: 'Users who haven\'t been active recently',
+        filters: { engagement_level: 'inactive' },
+        created_by: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+    },
+    {
+      title: "High-Value Drivers",
+      description: "Target highly engaged driver partners",
+      icon: DollarSign,
+      color: "bg-green-50 border-green-200",
+      users: users.filter(u => u.user_type === 'drivers' && u.engagement_level === 'high').length,
+      action: () => handleSegmentSelection({
+        id: 'high-value-drivers',
+        name: 'High-Value Drivers',
+        description: 'Highly engaged driver partners',
+        filters: { user_type: 'drivers', engagement_level: 'high' },
+        created_by: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+    },
+    {
+      title: "Active Riders",
+      description: "Regular riders with consistent usage",
+      icon: Users,
+      color: "bg-blue-50 border-blue-200",
+      users: users.filter(u => u.user_type === 'riders' && ['high', 'medium'].includes(u.engagement_level)).length,
+      action: () => handleSegmentSelection({
+        id: 'active-riders',
+        name: 'Active Riders',
+        description: 'Regular riders with consistent usage',
+        filters: { user_type: 'riders', engagement_level: ['high', 'medium'] },
+        created_by: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
     }
-  };
-
-  const getEngagementColor = (engagement: string) => {
-    switch (engagement) {
-      case 'High':
-        return 'bg-blue-100 text-blue-800';
-      case 'Medium':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'Low':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
+  ];
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">User Targeting</h2>
-          <p className="text-gray-600">Manage and segment your user base for targeted campaigns</p>
+          <p className="text-gray-600">Segment and target users for your campaigns</p>
         </div>
-        <Button className="bg-black hover:bg-gray-800 text-white">
-          <Users className="w-4 h-4 mr-2" />
-          Create Segment
-        </Button>
+        {selectedUsers.length > 0 && (
+          <Badge variant="outline" className="text-sm">
+            {selectedUsers.length} users selected
+          </Badge>
+        )}
       </div>
 
-      {/* Filters */}
-      <Card className="border-0 shadow-sm">
-        <CardContent className="p-6">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Search users by name or email..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-            <Select value={selectedSegment} onValueChange={setSelectedSegment}>
-              <SelectTrigger className="w-full sm:w-48">
-                <SelectValue placeholder="Filter by segment" />
-              </SelectTrigger>
-              <SelectContent>
-                {segments.map((segment) => (
-                  <SelectItem key={segment.value} value={segment.value}>
-                    {segment.label} ({segment.count})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button variant="outline" className="w-full sm:w-auto">
-              <Filter className="w-4 h-4 mr-2" />
-              More Filters
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        {[
-          { icon: Users, label: 'Total Users', value: users.length.toLocaleString(), color: 'text-blue-600' },
-          { icon: TrendingDown, label: 'Inactive Users', value: users.filter(u => u.status === 'Inactive').length, color: 'text-red-600' },
-          { icon: Clock, label: 'Recently Active', value: users.filter(u => u.lastActive.includes('minutes') || u.lastActive.includes('hours')).length, color: 'text-green-600' },
-          { icon: DollarSign, label: 'High Value', value: users.filter(u => u.tags.includes('High Value')).length, color: 'text-purple-600' },
-        ].map((stat, index) => (
-          <Card key={index} className="border-0 shadow-sm">
+      {/* Quick Actions */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {quickActions.map((action, index) => (
+          <Card key={index} className={`border-2 ${action.color} hover:shadow-md transition-shadow cursor-pointer`} onClick={action.action}>
             <CardContent className="p-4">
               <div className="flex items-center space-x-3">
-                <div className={`p-2 rounded-lg bg-gray-100`}>
-                  <stat.icon className={`w-5 h-5 ${stat.color}`} />
+                <div className="p-2 bg-white rounded-lg shadow-sm">
+                  <action.icon className="w-5 h-5 text-gray-700" />
                 </div>
-                <div>
-                  <p className="text-sm text-gray-600">{stat.label}</p>
-                  <p className="text-xl font-bold text-gray-900">{stat.value}</p>
+                <div className="flex-1">
+                  <h3 className="font-medium text-gray-900">{action.title}</h3>
+                  <p className="text-sm text-gray-600">{action.description}</p>
+                  <p className="text-xs text-gray-500 mt-1">{action.users} users</p>
                 </div>
               </div>
             </CardContent>
@@ -211,118 +266,118 @@ const UserTargeting = () => {
         ))}
       </div>
 
-      {/* User List */}
-      <Card className="border-0 shadow-sm">
-        <CardHeader>
-          <CardTitle>User List</CardTitle>
-          <CardDescription>
-            {getFilteredUsers().length} users found
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {getFilteredUsers().map((user) => (
-              <div key={user.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                <div className="flex items-center space-x-4">
-                  <div className="w-10 h-10 bg-black rounded-full flex items-center justify-center text-white font-semibold">
-                    {user.name.split(' ').map(n => n[0]).join('')}
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-gray-900">{user.name}</h4>
-                    <p className="text-sm text-gray-600">{user.email}</p>
-                    <div className="flex items-center space-x-2 mt-1">
-                      <Badge variant="outline" className="text-xs">
-                        {user.type}
-                      </Badge>
-                      <Badge className={`text-xs ${getStatusColor(user.status)}`}>
-                        {user.status}
-                      </Badge>
-                      <Badge className={`text-xs ${getEngagementColor(user.engagement)}`}>
-                        {user.engagement}
-                      </Badge>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="flex items-center space-x-6 text-right">
-                  <div>
-                    <p className="text-sm font-semibold text-gray-900">{user.totalSpent}</p>
-                    <p className="text-xs text-gray-500">Total Spent</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-gray-900">{user.campaigns}</p>
-                    <p className="text-xs text-gray-500">Campaigns</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-gray-900">{user.lastActive}</p>
-                    <p className="text-xs text-gray-500">Last Active</p>
-                  </div>
-                  <div className="flex flex-wrap gap-1 max-w-32">
-                    {user.tags.map((tag, index) => (
-                      <Badge key={index} variant="secondary" className="text-xs">
-                        {tag}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-          
-          {getFilteredUsers().length === 0 && (
-            <div className="text-center py-8">
-              <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No users found</h3>
-              <p className="text-gray-600">Try adjusting your search or filter criteria</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <Tabs defaultValue="segments" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="segments">User Segments</TabsTrigger>
+          <TabsTrigger value="users">All Users</TabsTrigger>
+        </TabsList>
 
-      {/* Segmentation Quick Actions */}
-      <Card className="border-0 shadow-sm">
-        <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
-          <CardDescription>Common user segments for campaign targeting</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {[
-              { 
-                title: "Win-back Campaign", 
-                description: "Target users inactive for 30+ days",
-                count: users.filter(u => u.tags.includes('Churned') || u.status === 'Inactive').length,
-                color: "border-red-200 bg-red-50"
-              },
-              { 
-                title: "Loyalty Rewards", 
-                description: "High-value and frequent users",
-                count: users.filter(u => u.tags.includes('High Value') || u.tags.includes('Frequent User')).length,
-                color: "border-blue-200 bg-blue-50"
-              },
-              { 
-                title: "New User Onboarding", 
-                description: "Users who joined in the last 7 days",
-                count: Math.floor(Math.random() * 50) + 25, // Mock new users
-                color: "border-green-200 bg-green-50"
-              },
-            ].map((action, index) => (
-              <div key={index} className={`p-4 border-2 rounded-lg ${action.color} cursor-pointer hover:opacity-80 transition-opacity`}>
-                <h4 className="font-semibold text-gray-900">{action.title}</h4>
-                <p className="text-sm text-gray-600 mt-1">{action.description}</p>
-                <div className="flex items-center justify-between mt-3">
-                  <Badge variant="outline" className="text-xs">
-                    {action.count} users
-                  </Badge>
-                  <Button size="sm" variant="outline">
-                    Create Campaign
-                  </Button>
+        <TabsContent value="segments" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>User Segments</CardTitle>
+              <CardDescription>Pre-defined user segments based on behavior and attributes</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <div className="space-y-4">
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="flex items-center justify-between p-4 border rounded-lg">
+                      <div className="space-y-2">
+                        <Skeleton className="h-4 w-48" />
+                        <Skeleton className="h-3 w-64" />
+                      </div>
+                      <Skeleton className="h-9 w-32" />
+                    </div>
+                  ))}
                 </div>
+              ) : (
+                <div className="space-y-4">
+                  {segments.map((segment) => (
+                    <div key={segment.id} className={`flex items-center justify-between p-4 border rounded-lg ${activeSegmentId === segment.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}`}>
+                      <div className="flex-1">
+                        <h3 className="font-medium text-gray-900">{segment.name}</h3>
+                        <p className="text-sm text-gray-600">{segment.description}</p>
+                      </div>
+                      <Button
+                        variant={activeSegmentId === segment.id ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => handleSegmentSelection(segment)}
+                      >
+                        {activeSegmentId === segment.id ? 'Selected' : 'Select'}
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="users" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>All Users</CardTitle>
+              <CardDescription>Browse and filter all users in your system</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {/* Search and Filter */}
+              <div className="flex flex-col sm:flex-row gap-4 mb-6">
+                <div className="flex-1 relative">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Input
+                    placeholder="Search users by name or email..."
+                    value={searchQuery}
+                    onChange={(e) => handleSearch(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+                <Select value={engagementFilter} onValueChange={handleEngagementFilter}>
+                  <SelectTrigger className="w-full sm:w-48">
+                    <SelectValue placeholder="Filter by engagement" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Engagement</SelectItem>
+                    <SelectItem value="high">High Engagement</SelectItem>
+                    <SelectItem value="medium">Medium Engagement</SelectItem>
+                    <SelectItem value="low">Low Engagement</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+
+              {/* User Type Tabs */}
+              <Tabs defaultValue="all" className="space-y-4">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="all">All Users</TabsTrigger>
+                  <TabsTrigger value="drivers">Drivers</TabsTrigger>
+                  <TabsTrigger value="riders">Riders</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="all">
+                  <UserList users={filteredUsers} isLoading={isLoading} />
+                </TabsContent>
+
+                <TabsContent value="drivers">
+                  <UserList 
+                    users={filteredUsers.filter(user => user.user_type === 'drivers')} 
+                    isLoading={isLoading}
+                    emptyMessage="No drivers found matching your criteria"
+                  />
+                </TabsContent>
+
+                <TabsContent value="riders">
+                  <UserList 
+                    users={filteredUsers.filter(user => user.user_type === 'riders')} 
+                    isLoading={isLoading}
+                    emptyMessage="No riders found matching your criteria"
+                  />
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

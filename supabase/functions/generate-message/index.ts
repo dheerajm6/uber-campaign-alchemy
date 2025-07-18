@@ -59,8 +59,8 @@ serve(async (req) => {
 
     // Request body for Hyperleap API
     const requestBody = {
-      prompt_id: '9ab5aa1f-b408-4881-9355-d82bf23c52dd',
-      prompt_version_id: '7c3a9c75-150e-4d92-99de-af31ff065bb9',
+      promptId: '9ab5aa1f-b408-4881-9355-d82bf23c52dd',
+      promptVersionId: '7c3a9c75-150e-4d92-99de-af31ff065bb9',
       replacements: replacements
     }
 
@@ -76,11 +76,11 @@ serve(async (req) => {
         const controller = new AbortController()
         const timeoutId = setTimeout(() => controller.abort(), 15000) // 15 second timeout
         
-        const response = await fetch('https://api.hyperleap.ai/prompts/run', {
+        const response = await fetch('https://api.hyperleapai.com/prompt-runs', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${hyperleapApiKey}`,
+            'x-hl-api-key': hyperleapApiKey,
             'User-Agent': 'Supabase-Edge-Function/1.0',
           },
           body: JSON.stringify(requestBody),
@@ -125,11 +125,11 @@ serve(async (req) => {
         console.log('API Response structure:', Object.keys(data))
         console.log('Full API Response:', JSON.stringify(data, null, 2))
 
-        // Based on the docs, the response should have an 'output' field
-        const generatedMessage = data.output
+        // Extract message from the response structure
+        const generatedMessage = data.choices?.[0]?.message?.content || data.output
 
         if (!generatedMessage) {
-          console.error('No output found in response. Available fields:', Object.keys(data))
+          console.error('No message found in response. Available fields:', Object.keys(data))
           return new Response(
             JSON.stringify({ 
               error: 'No generated message found in API response',

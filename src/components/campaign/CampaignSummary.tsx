@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Campaign } from "@/types/campaign";
+import { useCampaignContext } from "@/contexts/CampaignContext";
 
 interface CampaignSummaryProps {
   campaign: Campaign;
@@ -11,6 +12,7 @@ interface CampaignSummaryProps {
 }
 
 const CampaignSummary: React.FC<CampaignSummaryProps> = ({ campaign, step }) => {
+  const { selectedUsers, selectedSegment } = useCampaignContext();
   return (
     <Card className="border-0 shadow-sm">
       <CardHeader>
@@ -58,8 +60,20 @@ const CampaignSummary: React.FC<CampaignSummaryProps> = ({ campaign, step }) => 
         {step > 1 && (
           <Alert>
             <AlertDescription className="text-xs">
-              Estimated reach: <strong>12,500 users</strong><br />
-              Expected CTR: <strong>3.2%</strong>
+              {selectedUsers.length > 0 ? (
+                <>
+                  Selected users: <strong>{selectedUsers.length} users</strong><br />
+                  {selectedSegment && (
+                    <>Segment: <strong>{selectedSegment.name}</strong><br /></>
+                  )}
+                  Expected CTR: <strong>3.2%</strong>
+                </>
+              ) : (
+                <>
+                  Estimated reach: <strong>12,500 users</strong><br />
+                  Expected CTR: <strong>3.2%</strong>
+                </>
+              )}
             </AlertDescription>
           </Alert>
         )}
