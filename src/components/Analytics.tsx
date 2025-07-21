@@ -16,24 +16,36 @@ const Analytics = () => {
 
   useEffect(() => {
     const loadLoginStats = () => {
-      const totalLogins = parseInt(localStorage.getItem('login_count') || '0');
-      const userLogins = JSON.parse(localStorage.getItem('user_logins') || '{}');
-      const lastLogin = localStorage.getItem('last_login');
-      const uniqueUsers = Object.keys(userLogins).length;
+      try {
+        const totalLogins = parseInt(localStorage.getItem('login_count') || '0');
+        const userLogins = JSON.parse(localStorage.getItem('user_logins') || '{}');
+        const lastLogin = localStorage.getItem('last_login');
+        const uniqueUsers = Object.keys(userLogins).length;
 
-      setLoginStats({
-        totalLogins,
-        userLogins,
-        lastLogin,
-        uniqueUsers
-      });
-      setIsLoading(false);
+        console.log('Analytics data loaded:', {
+          totalLogins,
+          userLogins,
+          lastLogin,
+          uniqueUsers
+        });
+
+        setLoginStats({
+          totalLogins,
+          userLogins,
+          lastLogin,
+          uniqueUsers
+        });
+        setIsLoading(false);
+      } catch (error) {
+        console.error('Failed to load analytics data:', error);
+        setIsLoading(false);
+      }
     };
 
     loadLoginStats();
     
-    // Refresh every 5 seconds to catch new logins
-    const interval = setInterval(loadLoginStats, 5000);
+    // Refresh every 2 seconds to catch new logins quickly
+    const interval = setInterval(loadLoginStats, 2000);
     return () => clearInterval(interval);
   }, []);
 
@@ -154,6 +166,12 @@ const Analytics = () => {
         <CardHeader>
           <CardTitle className="text-lg font-semibold">Demo Account Usage</CardTitle>
           <CardDescription>Breakdown of demo credential usage</CardDescription>
+          {/* Debug info - show raw localStorage data */}
+          <div className="text-xs text-gray-500 mt-2 p-2 bg-gray-100 rounded">
+            <strong>Debug Info:</strong> login_count: {localStorage.getItem('login_count') || 'null'}, 
+            user_logins: {localStorage.getItem('user_logins') || 'null'}, 
+            last_login: {localStorage.getItem('last_login') || 'null'}
+          </div>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">

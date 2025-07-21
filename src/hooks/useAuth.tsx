@@ -37,13 +37,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       localStorage.setItem('auth_user', JSON.stringify(userData));
       
       // Track login for analytics
-      const loginCount = localStorage.getItem('login_count') || '0';
-      const userLogins = JSON.parse(localStorage.getItem('user_logins') || '{}');
-      
-      userLogins[username] = (userLogins[username] || 0) + 1;
-      localStorage.setItem('login_count', (parseInt(loginCount) + 1).toString());
-      localStorage.setItem('user_logins', JSON.stringify(userLogins));
-      localStorage.setItem('last_login', new Date().toISOString());
+      try {
+        const loginCount = localStorage.getItem('login_count') || '0';
+        const userLogins = JSON.parse(localStorage.getItem('user_logins') || '{}');
+        
+        userLogins[username] = (userLogins[username] || 0) + 1;
+        const newTotalLogins = parseInt(loginCount) + 1;
+        localStorage.setItem('login_count', newTotalLogins.toString());
+        localStorage.setItem('user_logins', JSON.stringify(userLogins));
+        localStorage.setItem('last_login', new Date().toISOString());
+        
+        console.log('Admin login tracked successfully:', {
+          username,
+          totalLogins: newTotalLogins,
+          userLoginCount: userLogins[username],
+          timestamp: new Date().toISOString()
+        });
+      } catch (error) {
+        console.error('Failed to track admin login:', error);
+      }
       
       return true;
     }
@@ -55,13 +67,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       localStorage.setItem('auth_user', JSON.stringify(userData));
       
       // Track login for analytics
-      const loginCount = localStorage.getItem('login_count') || '0';
-      const userLogins = JSON.parse(localStorage.getItem('user_logins') || '{}');
-      
-      userLogins[username] = (userLogins[username] || 0) + 1;
-      localStorage.setItem('login_count', (parseInt(loginCount) + 1).toString());
-      localStorage.setItem('user_logins', JSON.stringify(userLogins));
-      localStorage.setItem('last_login', new Date().toISOString());
+      try {
+        const loginCount = localStorage.getItem('login_count') || '0';
+        const userLogins = JSON.parse(localStorage.getItem('user_logins') || '{}');
+        
+        userLogins[username] = (userLogins[username] || 0) + 1;
+        const newTotalLogins = parseInt(loginCount) + 1;
+        localStorage.setItem('login_count', newTotalLogins.toString());
+        localStorage.setItem('user_logins', JSON.stringify(userLogins));
+        localStorage.setItem('last_login', new Date().toISOString());
+        
+        console.log('Demo user login tracked successfully:', {
+          username,
+          totalLogins: newTotalLogins,
+          userLoginCount: userLogins[username],
+          timestamp: new Date().toISOString()
+        });
+      } catch (error) {
+        console.error('Failed to track demo user login:', error);
+      }
       
       return true;
     }
