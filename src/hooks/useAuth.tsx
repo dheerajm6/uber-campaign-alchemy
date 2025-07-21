@@ -47,6 +47,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         localStorage.setItem('user_logins', JSON.stringify(userLogins));
         localStorage.setItem('last_login', new Date().toISOString());
         
+        // Store complete login activity log
+        const loginActivities = JSON.parse(localStorage.getItem('login_activities') || '[]');
+        const loginActivity = {
+          id: Date.now().toString(),
+          username,
+          role: 'admin',
+          timestamp: new Date().toISOString(),
+          userAgent: navigator.userAgent,
+          sessionId: Math.random().toString(36).substr(2, 9)
+        };
+        loginActivities.push(loginActivity);
+        // Keep only last 100 activities to prevent storage bloat
+        if (loginActivities.length > 100) {
+          loginActivities.splice(0, loginActivities.length - 100);
+        }
+        localStorage.setItem('login_activities', JSON.stringify(loginActivities));
+        
         console.log('Admin login tracked successfully:', {
           username,
           totalLogins: newTotalLogins,
@@ -76,6 +93,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         localStorage.setItem('login_count', newTotalLogins.toString());
         localStorage.setItem('user_logins', JSON.stringify(userLogins));
         localStorage.setItem('last_login', new Date().toISOString());
+        
+        // Store complete login activity log
+        const loginActivities = JSON.parse(localStorage.getItem('login_activities') || '[]');
+        const loginActivity = {
+          id: Date.now().toString(),
+          username,
+          role: 'user',
+          timestamp: new Date().toISOString(),
+          userAgent: navigator.userAgent,
+          sessionId: Math.random().toString(36).substr(2, 9)
+        };
+        loginActivities.push(loginActivity);
+        // Keep only last 100 activities to prevent storage bloat
+        if (loginActivities.length > 100) {
+          loginActivities.splice(0, loginActivities.length - 100);
+        }
+        localStorage.setItem('login_activities', JSON.stringify(loginActivities));
         
         console.log('Demo user login tracked successfully:', {
           username,

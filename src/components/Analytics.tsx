@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Users, Eye, Clock, TrendingUp } from "lucide-react";
+import { Users, Eye, Clock, TrendingUp, Activity, Filter } from "lucide-react";
 
 const Analytics = () => {
   const [loginStats, setLoginStats] = useState({
@@ -12,6 +13,9 @@ const Analytics = () => {
     lastLogin: null,
     uniqueUsers: 0
   });
+  const [loginActivities, setLoginActivities] = useState([]);
+  const [filteredActivities, setFilteredActivities] = useState([]);
+  const [roleFilter, setRoleFilter] = useState('all'); // 'all', 'admin', 'user'
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -21,12 +25,17 @@ const Analytics = () => {
         const userLogins = JSON.parse(localStorage.getItem('user_logins') || '{}');
         const lastLogin = localStorage.getItem('last_login');
         const uniqueUsers = Object.keys(userLogins).length;
+        const activities = JSON.parse(localStorage.getItem('login_activities') || '[]');
+
+        // Sort activities by timestamp (most recent first)
+        activities.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
         console.log('Analytics data loaded:', {
           totalLogins,
           userLogins,
           lastLogin,
-          uniqueUsers
+          uniqueUsers,
+          activitiesCount: activities.length
         });
 
         setLoginStats({
@@ -35,6 +44,7 @@ const Analytics = () => {
           lastLogin,
           uniqueUsers
         });
+        setLoginActivities(activities);
         setIsLoading(false);
       } catch (error) {
         console.error('Failed to load analytics data:', error);
@@ -49,10 +59,35 @@ const Analytics = () => {
     return () => clearInterval(interval);
   }, []);
 
+  // Filter activities based on role filter
+  useEffect(() => {
+    if (roleFilter === 'all') {
+      setFilteredActivities(loginActivities);
+    } else {
+      setFilteredActivities(loginActivities.filter(activity => activity.role === roleFilter));
+    }
+  }, [loginActivities, roleFilter]);
+
   const chartData = Object.entries(loginStats.userLogins).map(([username, count]) => ({
     username,
     logins: count
   }));
+
+  const formatTimestamp = (timestamp) => {
+    const date = new Date(timestamp);
+    return {
+      date: date.toLocaleDateString(),
+      time: date.toLocaleTimeString()
+    };
+  };
+
+  const getBrowserName = (userAgent) => {
+    if (userAgent.includes('Chrome')) return 'Chrome';
+    if (userAgent.includes('Firefox')) return 'Firefox';
+    if (userAgent.includes('Safari') && !userAgent.includes('Chrome')) return 'Safari';
+    if (userAgent.includes('Edge')) return 'Edge';
+    return 'Other';
+  };
 
   const kpiCards = [
     {
@@ -205,6 +240,102 @@ const Analytics = () => {
               ))
             )}
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Complete Login Activity Log */}
+      <Card className="border-0 shadow-sm">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-lg font-semibold flex items-center">
+                <Activity className="w-5 h-5 mr-2" />
+                Complete Login Activity Log
+              </CardTitle>
+              <CardDescription>Detailed log of all login sessions ({filteredActivities.length} total)</CardDescription>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Filter className="w-4 h-4 text-gray-500" />
+              <select 
+                value={roleFilter}
+                onChange={(e) => setRoleFilter(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black"
+              >
+                <option value="all">All Users</option>
+                <option value="admin">Admin Only</option>
+                <option value="user">Demo Users Only</option>
+              </select>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="space-y-3">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex items-center space-x-4">
+                    <Skeleton className="h-10 w-10 rounded-full" />
+                    <div className="space-y-2">
+                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-3 w-24" />
+                    </div>
+                  </div>
+                  <Skeleton className="h-4 w-20" />
+                </div>
+              ))}
+            </div>
+          ) : filteredActivities.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <Activity className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+              <p>No login activities found</p>
+              <p className="text-sm">Login activities will appear here once users start logging in</p>
+            </div>
+          ) : (
+            <div className="space-y-3 max-h-96 overflow-y-auto">
+              {filteredActivities.map((activity, index) => {
+                const { date, time } = formatTimestamp(activity.timestamp);
+                const browser = getBrowserName(activity.userAgent);
+                
+                return (
+                  <div key={activity.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors">
+                    <div className="flex items-center space-x-4">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold ${
+                        activity.role === 'admin' ? 'bg-blue-600' : 'bg-green-600'
+                      }`}>
+                        {activity.username.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2">
+                          <h4 className="font-medium text-gray-900">{activity.username}</h4>
+                          <Badge 
+                            variant="outline"
+                            className={`text-xs ${
+                              activity.role === 'admin' 
+                                ? 'border-blue-200 text-blue-700 bg-blue-50' 
+                                : 'border-green-200 text-green-700 bg-green-50'
+                            }`}
+                          >
+                            {activity.role === 'admin' ? 'Admin' : 'Demo User'}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center space-x-4 text-sm text-gray-600 mt-1">
+                          <span>{date} at {time}</span>
+                          <span>•</span>
+                          <span>Browser: {browser}</span>
+                          <span>•</span>
+                          <span>Session: {activity.sessionId}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right text-sm text-gray-500">
+                      <div>Login #{loginActivities.length - index}</div>
+                      <div className="text-xs">{new Date(activity.timestamp).toLocaleTimeString()}</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
